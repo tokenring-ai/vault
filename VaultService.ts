@@ -95,9 +95,13 @@ export default class VaultService implements TokenRingService {
 
     if (!this.sessionPassword) {
       this.sessionPassword = await agent.askHuman({
-        type: "password",
-        question: "Enter your password to unlock the vault."
+        type: "askForPassword",
+        message: "Enter your password to unlock the vault."
       });
+    }
+
+    if (! this.sessionPassword) {
+      throw new Error("Password was empty, vault unlock cancelled");
     }
 
     try {
