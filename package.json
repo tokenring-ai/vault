@@ -1,0 +1,14 @@
+{
+ "name": "@tokenring-ai/vault",
+ "version": "0.1.0",
+ "description": "A vault service for storing persisted credentials",
+ "dependencies": {
+  "@tokenring-ai/agent": "0.1.0"
+ },
+ "exports": {
+  ".": "./index.ts",
+  "./*": "./*.ts"
+ },
+ "license": "MIT",
+ "type": "module"
+}
