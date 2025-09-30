@@ -79,6 +79,29 @@ export default class VaultService implements TokenRingService {
     return decrypted;
   }
 
+  private async initializeVault(agent: Agent): Promise<Record<string, AnyJSON>> {
+    agent.infoLine("Vault file does not exist, creating a new empty vault.");
+    
+    // Ensure we have a password before creating the file
+    this.sessionPassword = await agent.askHuman({
+      type: "askForPassword",
+      message: "Set a password for the new vault."
+    });
+    
+    if (!this.sessionPassword) {
+      throw new Error("Password was empty, vault creation cancelled");
+    }
+    
+    await this.save({}, agent);
+    this.vaultData = {};
+    this.scheduleRelock();
+    return {};
+  }
+
+  private scheduleRelock(): void {
+    this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
+  }
+
   async unlockVault(agent: Agent): Promise<Record<string, AnyJSON>> {
     if (this.relockTimer) {
       clearTimeout(this.relockTimer);
@@ -87,10 +110,8 @@ export default class VaultService implements TokenRingService {
 
     if (this.vaultData) return this.vaultData;
 
-    if (!fs.existsSync(this.vaultFile)) {
-      agent.infoLine("Vault file does not exist, a new empty vault will be created.");
-      await this.save({}, agent);
-      return {};
+    if (!await fs.pathExists(this.vaultFile)) {
+      return await this.initializeVault(agent);
     }
 
     if (!this.sessionPassword) {
@@ -109,7 +130,7 @@ export default class VaultService implements TokenRingService {
       const decryptedContent = this.decrypt(encryptedContent, this.sessionPassword);
       this.vaultData = JSON.parse(decryptedContent) as Record<string,AnyJSON> ?? {};
       
-      this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
+      this.scheduleRelock();
       
       return this.vaultData;
     } catch (error) {
