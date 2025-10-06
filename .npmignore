@@ -1,0 +1,9 @@
+.git
+.github
+node_modules
+*.vault
+.env
+keys
+*.ts
+tsconfig.json
+!dist

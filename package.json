@@ -3,11 +3,27 @@
  "version": "0.1.0",
  "description": "A vault service for storing persisted credentials",
  "dependencies": {
-  "@tokenring-ai/agent": "0.1.0"
+  "commander": "^14.0.1"
+ },
+ "devDependencies": {
+  "@tokenring-ai/agent": "^0.1.0"
  },
  "exports": {
   ".": "./index.ts",
   "./*": "./*.ts"
+ },
+ "bin": {
+  "vault": "./dist/vault"
+ },
+ "files": [
+  "dist",
+  "LICENSE",
+  "README.md"
+ ],
+ "scripts": {
+  "build": "bun build --compile --outfile=dist/vault ./cli.ts",
+  "prepublishOnly": "bun run build",
+  "release:patch": "bun pm version patch && git push && git push --tags"
  },
  "license": "MIT",
  "type": "module"
