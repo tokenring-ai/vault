@@ -3,7 +3,7 @@
  "version": "0.1.2",
  "description": "A vault service for storing persisted credentials",
  "dependencies": {
-  "commander": "^14.0.1",
+  "commander": "^14.0.2",
   "fs-extra": "^11.3.2"
  },
  "exports": {
