@@ -1,5 +1,5 @@
 import {Agent} from "@tokenring-ai/agent";
-import {TokenRingService} from "@tokenring-ai/agent/types";
+import {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
 import {readVault, writeVault, initVault} from "./vault.ts";
 export interface VaultOptions {
@@ -14,10 +14,10 @@ export default class VaultService implements TokenRingService {
   name = "VaultService";
   description = "A vault service for storing persisted credentials";
 
-  private vaultFile: string;
+  private readonly vaultFile: string;
   private vaultData: Record<string, string> | undefined;
   private relockTimer: NodeJS.Timeout | undefined;
-  private relockTime = 300 * 1000; // 5 minutes
+  private readonly relockTime = 300 * 1000; // 5 minutes
 
   constructor(options: VaultOptions) {
     this.vaultFile = options.vaultFile;
