@@ -1,7 +1,7 @@
-import {type TokenRingPackage} from "@tokenring-ai/agent";
+import {TokenRingPlugin} from "@tokenring-ai/app";
 import packageJSON from './package.json' with {type: 'json'};
 
-export const packageInfo: TokenRingPackage = {
+export const packageInfo: TokenRingPlugin = {
   name: packageJSON.name,
   version: packageJSON.version,
   description: packageJSON.description
