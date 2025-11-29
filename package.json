@@ -1,8 +1,9 @@
 {
  "name": "@tokenring-ai/vault",
- "version": "0.1.2",
+ "version": "0.2.0",
  "description": "A vault service for storing persisted credentials",
  "dependencies": {
+  "@tokenring-ai/app": "0.2.0",
   "@types/fs-extra": "^11.0.4",
   "commander": "^14.0.2",
   "fs-extra": "^11.3.2"

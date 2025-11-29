@@ -1,7 +1,8 @@
 import {Agent} from "@tokenring-ai/agent";
 import {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
-import {readVault, writeVault, initVault} from "./vault.ts";
+import {initVault, readVault, writeVault} from "./vault.ts";
+
 export interface VaultOptions {
   vaultFile: string;
   relockTime: number;
@@ -26,28 +27,6 @@ export default class VaultService implements TokenRingService {
 
 
 
-  private async initializeVault(agent: Agent): Promise<Record<string, string>> {
-    agent.infoLine("Vault file does not exist, creating a new empty vault.");
-    
-    this.sessionPassword = await agent.askHuman({
-      type: "askForPassword",
-      message: "Set a password for the new vault."
-    });
-    
-    if (!this.sessionPassword) {
-      throw new Error("Password was empty, vault creation cancelled");
-    }
-    
-    await initVault(this.vaultFile, this.sessionPassword);
-    this.vaultData = {};
-    this.scheduleRelock();
-    return {};
-  }
-
-  private scheduleRelock(): void {
-    this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
-  }
-
   async unlockVault(agent: Agent): Promise<Record<string, string>> {
     if (this.relockTimer) {
       clearTimeout(this.relockTimer);
@@ -61,14 +40,16 @@ export default class VaultService implements TokenRingService {
     }
 
     if (!this.sessionPassword) {
-      this.sessionPassword = await agent.askHuman({
+      const password = await agent.askHuman({
         type: "askForPassword",
         message: "Enter your password to unlock the vault."
       });
-    }
 
-    if (! this.sessionPassword) {
-      throw new Error("Password was empty, vault unlock cancelled");
+      if (!password) {
+        throw new Error("Password was empty, vault unlock cancelled");
+      }
+
+      this.sessionPassword = password;
     }
 
     try {
@@ -79,6 +60,29 @@ export default class VaultService implements TokenRingService {
       this.sessionPassword = undefined;
       throw new Error('Failed to decrypt vault. Invalid password or corrupted vault file.');
     }
+  }
+
+  private scheduleRelock(): void {
+    this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
+  }
+
+  private async initializeVault(agent: Agent): Promise<Record<string, string>> {
+    agent.infoLine("Vault file does not exist, creating a new empty vault.");
+
+    const password = await agent.askHuman({
+      type: "askForPassword",
+      message: "Set a password for the new vault."
+    });
+
+    if (!password) {
+      throw new Error("Password was empty, vault creation cancelled");
+    }
+
+    this.sessionPassword = password;
+    await initVault(this.vaultFile, this.sessionPassword);
+    this.vaultData = {};
+    this.scheduleRelock();
+    return {};
   }
 
   async lock(): Promise<void> {
