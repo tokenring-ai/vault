@@ -1,30 +1,30 @@
 {
- "name": "@tokenring-ai/vault",
- "version": "0.2.0",
- "description": "A vault service for storing persisted credentials",
- "dependencies": {
-  "@tokenring-ai/app": "0.2.0",
-  "@types/fs-extra": "^11.0.4",
-  "commander": "^14.0.2",
-  "fs-extra": "^11.3.2"
- },
- "exports": {
-  ".": "./index.ts",
-  "./*": "./*.ts"
- },
- "bin": {
-  "vault": "./dist/vault"
- },
- "files": [
-  "dist",
-  "LICENSE",
-  "README.md"
- ],
- "scripts": {
-  "build": "bun build --compile --outfile=dist/vault ./cli.ts",
-  "prepublishOnly": "bun run build",
-  "release:patch": "NEWVERSION=`bun pm version patch` && git add package.json && git commit -m \"Bump version to ${NEWVERSION}\" && git tag ${NEWVERSION} && git push && git push --tags"
- },
- "license": "MIT",
- "type": "module"
+  "name": "@tokenring-ai/vault",
+  "version": "0.2.0",
+  "description": "A vault service for storing persisted credentials",
+  "dependencies": {
+    "@tokenring-ai/app": "0.2.0",
+    "@types/fs-extra": "^11.0.4",
+    "commander": "^14.0.2",
+    "fs-extra": "^11.3.2"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  },
+  "bin": {
+    "vault": "./dist/vault"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build --compile --outfile=dist/vault ./cli.ts",
+    "prepublishOnly": "bun run build",
+    "release:patch": "NEWVERSION=`bun pm version patch` && git add package.json && git commit -m \"Bump version to ${NEWVERSION}\" && git tag ${NEWVERSION} && git push && git push --tags"
+  },
+  "license": "MIT",
+  "type": "module"
 }
