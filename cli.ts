@@ -120,9 +120,7 @@ program
     
     const env = { ...process.env };
     for (const [key, value] of Object.entries(data)) {
-      if (typeof value === 'string') {
-        env[key] = value;
-      }
+      env[key] = value;
     }
     
     const child = spawn(command, args, {
