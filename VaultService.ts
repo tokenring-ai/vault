@@ -1,12 +1,14 @@
 import {Agent} from "@tokenring-ai/agent";
 import {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
+import {z} from "zod";
 import {initVault, readVault, writeVault} from "./vault.ts";
 
-export interface VaultOptions {
-  vaultFile: string;
-  relockTime: number;
-}
+export const vaultConfigSchema = z.object({
+  vaultFile: z.string().min(1),
+  relockTime: z.number().positive(),
+})
+
 
 export default class VaultService implements TokenRingService {
   // Add password caching during session
@@ -20,12 +22,10 @@ export default class VaultService implements TokenRingService {
   private relockTimer: NodeJS.Timeout | undefined;
   private readonly relockTime = 300 * 1000; // 5 minutes
 
-  constructor(options: VaultOptions) {
+  constructor(options: z.output<typeof vaultConfigSchema>) {
     this.vaultFile = options.vaultFile;
     this.relockTime = options.relockTime;
   }
-
-
 
   async unlockVault(agent: Agent): Promise<Record<string, string>> {
     if (this.relockTimer) {
