@@ -1,11 +1,11 @@
 import fs from "fs-extra";
 import crypto from "crypto";
 
-function deriveKey(password: string, salt: Buffer): Buffer {
+export function deriveKey(password: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
 }
 
-function encrypt(data: string, password: string): string {
+export function encrypt(data: string, password: string): string {
   const salt = crypto.randomBytes(16);
   const key = deriveKey(password, salt);
   const iv = crypto.randomBytes(12);
@@ -27,7 +27,7 @@ function encrypt(data: string, password: string): string {
   return combined.toString('base64');
 }
 
-function decrypt(encryptedData: string, password: string): string {
+export function decrypt(encryptedData: string, password: string): string {
   const combined = Buffer.from(encryptedData, 'base64');
 
   const salt = combined.subarray(0, 16);

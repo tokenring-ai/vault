@@ -1,27 +1,49 @@
 #!/usr/bin/env bun
 import { Command } from 'commander';
+import { spawn } from 'child_process';
 import { readVault, writeVault, initVault } from './vault.ts';
 import readline from 'readline';
-import { spawn } from 'child_process';
+
+let rlInterface: readline.Interface | undefined;
+
+function getReadlineInterface(): readline.Interface {
+  if (!rlInterface) {
+    rlInterface = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: process.stdin.isTTY
+    });
+  }
+  return rlInterface;
+}
 
 async function askPassword(message: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+  const rl = getReadlineInterface();
 
-    process.stdin.setRawMode(true);
+  if (!process.stdin.isTTY) {
+    return new Promise((resolve) => {
+      rl.question(message, (answer) => {
+        resolve(answer.trim());
+      });
+    });
+  }
+
+  return new Promise((resolve) => {
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(true);
+    }
     process.stdout.write(message + ' ');
     
     let password = '';
-    process.stdin.on('data', (char) => {
+    const onData = (char: Buffer) => {
       const byte = char.toString();
       
       if (byte === '\n' || byte === '\r' || byte === '\u0004') {
-        process.stdin.setRawMode(false);
+        if (process.stdin.setRawMode) {
+          process.stdin.setRawMode(false);
+        }
         process.stdout.write('\n');
-        rl.close();
+        process.stdin.removeListener('data', onData);
         resolve(password);
       } else if (byte === '\u0003') {
         process.exit(1);
@@ -30,7 +52,8 @@ async function askPassword(message: string): Promise<string> {
       } else {
         password += byte;
       }
-    });
+    };
+    process.stdin.on('data', onData);
   });
 }
 
@@ -100,12 +123,17 @@ program
   .command('change-password')
   .description('Change vault password')
   .action(async () => {
-    const opts = program.opts();
-    const oldPassword = await askPassword('Enter current vault password:');
-    const data = await readVault(opts.file, oldPassword);
-    const newPassword = await askPassword('Enter new vault password:');
-    await writeVault(opts.file, newPassword, data);
-    console.log('Password changed successfully');
+    try {
+      const opts = program.opts();
+      const oldPassword = await askPassword('Enter current vault password:');
+      const data = await readVault(opts.file, oldPassword);
+      const newPassword = await askPassword('Enter new vault password:');
+      await writeVault(opts.file, newPassword, data);
+      console.log('Password changed successfully');
+    } catch (e: any) {
+      console.error(`Error: ${e.message}`);
+      process.exit(1);
+    }
   });
 
 program
@@ -134,4 +162,8 @@ program
     });
   });
 
-program.parse(process.argv);
+program.parseAsync(process.argv).then(() => {
+  if (rlInterface) {
+    rlInterface.close();
+  }
+});
