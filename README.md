@@ -10,6 +10,8 @@ A secure, encrypted vault for managing secrets and credentials. Works both as a 
 - **Secure Password Input**: Hidden password entry in terminal
 - **Restrictive Permissions**: Vault files created with 0o600 (owner-only access)
 - **Session Management**: Automatic locking and password caching for TokenRing service
+- **Plugin Integration**: Seamless integration with TokenRing application framework
+- **Commander CLI**: Full featured command-line interface with password masking
 
 ## Installation
 
@@ -70,15 +72,44 @@ Re-encrypts the vault with a new password.
 
 ```bash
 vault run -- node app.js
-vault run -- npm start
+vault run -- bun start
 vault run -- bash -c 'echo $API_KEY'
 ```
 
 Executes a command with all vault secrets injected as environment variables. Only string values are injected.
 
-### CLI Options
+## CLI Commands
 
+### `vault init`
+
+Initialize a new encrypted vault file.
+
+**Options:**
 - `-f, --file <path>`: Specify vault file path (default: `.vault`)
+
+### `vault get <key>`
+
+Retrieve a secret value by key.
+
+### `vault set <key> <value>`
+
+Store a secret value.
+
+### `vault list`
+
+List all secret keys (not values) stored in the vault.
+
+### `vault remove <key>`
+
+Remove a secret by key.
+
+### `vault change-password`
+
+Change the vault encryption password.
+
+### `vault run <command> [args...]`
+
+Run a command with vault secrets injected as environment variables.
 
 ## TokenRing Service Usage
 
@@ -95,7 +126,7 @@ const vault = new VaultService({
 
 ### Service Methods
 
-#### unlockVault(agent: Agent)
+#### unlockVault(agent: Agent): Promise<Record<string, string>>
 
 Prompts for password and unlocks the vault. Returns the vault data.
 
@@ -103,7 +134,7 @@ Prompts for password and unlocks the vault. Returns the vault data.
 const data = await vault.unlockVault(agent);
 ```
 
-#### lock()
+#### lock(): Promise<void>
 
 Locks the vault and clears cached password and data.
 
@@ -111,7 +142,7 @@ Locks the vault and clears cached password and data.
 await vault.lock();
 ```
 
-#### getItem(key: string, agent: Agent)
+#### getItem(key: string, agent: Agent): Promise<string | undefined>
 
 Retrieves a value by key. Unlocks vault if needed. Returns string or undefined.
 
@@ -119,7 +150,7 @@ Retrieves a value by key. Unlocks vault if needed. Returns string or undefined.
 const apiKey = await vault.getItem('API_KEY', agent);
 ```
 
-#### setItem(key: string, value: string, agent: Agent)
+#### setItem(key: string, value: string, agent: Agent): Promise<void>
 
 Stores a string value by key. Unlocks vault if needed.
 
@@ -127,7 +158,7 @@ Stores a string value by key. Unlocks vault if needed.
 await vault.setItem('API_KEY', 'sk-1234567890', agent);
 ```
 
-#### save(vaultData: Record<string, string>, agent: Agent)
+#### save(vaultData: Record<string, string>, agent: Agent): Promise<void>
 
 Saves the entire vault data.
 
@@ -138,8 +169,10 @@ await vault.save({ API_KEY: 'new-key', DB_PASSWORD: 'new-pass' }, agent);
 ### Service Features
 
 - **Password Caching**: Password cached during session, cleared on lock
-- **Automatic Locking**: Vault locks after configured timeout
+- **Automatic Locking**: Vault locks after configured timeout (default: 5 minutes)
 - **Session Management**: Relock timer resets on each access
+- **Plugin Integration**: Auto-registers with TokenRing application framework
+- **Agent Integration**: Uses Agent's human interaction for password prompts
 
 ## Programmatic Vault Access
 
@@ -179,6 +212,7 @@ The vault stores string key-value pairs:
 - Vault files created with `0o600` permissions (owner read/write only)
 - Password never stored, only cached in memory during session
 - Automatic session timeout prevents unauthorized access
+- Secure password input with terminal masking
 
 ### Best Practices
 
@@ -239,7 +273,7 @@ vault set DATABASE_URL postgres://localhost/mydb
 vault set REDIS_URL redis://localhost:6379
 
 # Run with all secrets injected
-vault run -- npm start
+vault run -- bun start
 ```
 
 ## Error Handling
