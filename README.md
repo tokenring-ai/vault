@@ -12,6 +12,8 @@ A secure, encrypted vault for managing secrets and credentials. Works both as a 
 - **Session Management**: Automatic locking and password caching for TokenRing service
 - **Plugin Integration**: Seamless integration with TokenRing application framework
 - **Commander CLI**: Full featured command-line interface with password masking
+- **Zod Configuration**: Type-safe configuration with schema validation
+- **Comprehensive Testing**: Unit and integration tests with Vitest
 
 ## Installation
 
@@ -117,16 +119,19 @@ Run a command with vault secrets injected as environment variables.
 
 ```typescript
 import { VaultService } from '@tokenring-ai/vault';
+import { vaultConfigSchema } from '@tokenring-ai/vault';
 
-const vault = new VaultService({
+const config = vaultConfigSchema.parse({
   vaultFile: '.vault',
   relockTime: 300000  // 5 minutes in milliseconds
 });
+
+const vault = new VaultService(config);
 ```
 
 ### Service Methods
 
-#### unlockVault(agent: Agent): Promise<Record<string, string>>
+#### `unlockVault(agent: Agent): Promise<Record<string, string>>`
 
 Prompts for password and unlocks the vault. Returns the vault data.
 
@@ -134,7 +139,7 @@ Prompts for password and unlocks the vault. Returns the vault data.
 const data = await vault.unlockVault(agent);
 ```
 
-#### lock(): Promise<void>
+#### `lock(): Promise<void>`
 
 Locks the vault and clears cached password and data.
 
@@ -142,7 +147,7 @@ Locks the vault and clears cached password and data.
 await vault.lock();
 ```
 
-#### getItem(key: string, agent: Agent): Promise<string | undefined>
+#### `getItem(key: string, agent: Agent): Promise<string | undefined>`
 
 Retrieves a value by key. Unlocks vault if needed. Returns string or undefined.
 
@@ -150,7 +155,7 @@ Retrieves a value by key. Unlocks vault if needed. Returns string or undefined.
 const apiKey = await vault.getItem('API_KEY', agent);
 ```
 
-#### setItem(key: string, value: string, agent: Agent): Promise<void>
+#### `setItem(key: string, value: string, agent: Agent): Promise<void>`
 
 Stores a string value by key. Unlocks vault if needed.
 
@@ -158,7 +163,7 @@ Stores a string value by key. Unlocks vault if needed.
 await vault.setItem('API_KEY', 'sk-1234567890', agent);
 ```
 
-#### save(vaultData: Record<string, string>, agent: Agent): Promise<void>
+#### `save(vaultData: Record<string, string>, agent: Agent): Promise<void>`
 
 Saves the entire vault data.
 
@@ -173,13 +178,14 @@ await vault.save({ API_KEY: 'new-key', DB_PASSWORD: 'new-pass' }, agent);
 - **Session Management**: Relock timer resets on each access
 - **Plugin Integration**: Auto-registers with TokenRing application framework
 - **Agent Integration**: Uses Agent's human interaction for password prompts
+- **Type Safety**: Uses Zod for configuration validation
 
 ## Programmatic Vault Access
 
 For direct vault file manipulation without the service layer:
 
 ```typescript
-import { readVault, writeVault, initVault } from '@tokenring-ai/vault/vault';
+import { readVault, writeVault, initVault, encrypt, decrypt } from '@tokenring-ai/vault/vault';
 
 // Initialize new vault
 await initVault('.vault', 'myPassword');
@@ -189,6 +195,37 @@ const data = await readVault('.vault', 'myPassword');
 
 // Write vault (accepts Record<string, string>)
 await writeVault('.vault', 'myPassword', { API_KEY: 'value' });
+
+// Encrypt/decrypt data directly
+const encrypted = encrypt('secret', 'password');
+const decrypted = decrypt(encrypted, 'password');
+```
+
+## Core Functions
+
+### Encryption Functions
+
+```typescript
+import { encrypt, decrypt, deriveKey } from '@tokenring-ai/vault/vault';
+
+const encrypted = encrypt('secret-data', 'password');
+const decrypted = decrypt(encrypted, 'password');
+const key = deriveKey('password', salt);
+```
+
+### File Operations
+
+```typescript
+import { readVault, writeVault, initVault } from '@tokenring-ai/vault/vault';
+
+// Initialize vault
+await initVault('my.vault', 'password');
+
+// Read vault contents
+const data = await readVault('my.vault', 'password');
+
+// Write vault contents
+await writeVault('my.vault', 'password', { key: 'value' });
 ```
 
 ## Data Types
@@ -285,6 +322,40 @@ try {
   // Invalid password or corrupted vault file
   console.error('Failed to decrypt vault');
 }
+```
+
+## Plugin Integration
+
+The vault plugin automatically registers with the TokenRing application framework:
+
+```typescript
+import TokenRingApp from '@tokenring-ai/app';
+import vaultPlugin from '@tokenring-ai/vault';
+
+const app = new TokenRingApp();
+app.usePlugin(vaultPlugin);
+```
+
+The plugin reads configuration from the app's configuration slice:
+
+```typescript
+// In app configuration
+{
+  vault: {
+    vaultFile: '.vault',
+    relockTime: 300000
+  }
+}
+```
+
+## Testing
+
+The package includes comprehensive tests:
+
+```bash
+bun run test  # Run all tests
+bun run test:watch  # Watch mode
+bun run test:coverage  # Generate coverage report
 ```
 
 ## License
