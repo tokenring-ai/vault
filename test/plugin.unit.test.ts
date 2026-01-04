@@ -3,7 +3,7 @@ import TokenRingApp from '@tokenring-ai/app';
 import plugin from '../plugin.js';
 
 describe('Vault Plugin', () => {
-  let mockApp: TokenRingApp;
+  let mockApp: any;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -31,38 +31,20 @@ describe('Vault Plugin', () => {
   });
 
   describe('install', () => {
-    it('should install without config when no vault config provided', () => {
+    it('should not install without config when no vault config provided', () => {
       mockApp.getConfigSlice = vi.fn().mockReturnValue(undefined);
-      
-      plugin.install(mockApp);
-      
-      expect(mockApp.getConfigSlice).toHaveBeenCalledWith('vault', expect.any(Object));
+
+      plugin.install(mockApp, {});
+
       expect(mockApp.addServices).not.toHaveBeenCalled();
     });
 
     it('should install with config when vault config provided', () => {
-      const mockConfig = {
-        vaultFile: '/path/to/vault',
-        relockTime: 300000
-      };
-      
-      mockApp.getConfigSlice = vi.fn().mockReturnValue(mockConfig);
-      
-      plugin.install(mockApp);
-      
-      expect(mockApp.getConfigSlice).toHaveBeenCalledWith('vault', expect.any(Object));
-      expect(mockApp.addServices).toHaveBeenCalledWith(expect.any(Object));
-    });
-
-    it('should handle configuration validation', () => {
-      const mockConfig = {
-        vaultFile: '/path/to/vault',
-        relockTime: 300000
-      };
-      
-      mockApp.getConfigSlice = vi.fn().mockReturnValue(mockConfig);
-      
-      plugin.install(mockApp);
+      plugin.install(mockApp, { vault: {
+          vaultFile: '/path/to/vault',
+          relockTime: 300000
+        }
+      });
       
       expect(mockApp.addServices).toHaveBeenCalled();
     });
