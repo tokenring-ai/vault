@@ -1,6 +1,8 @@
+import {AgentCommandService} from "@tokenring-ai/agent";
 import {TokenRingPlugin} from "@tokenring-ai/app";
 
 import {z} from "zod";
+import chatCommands from "./chatCommands.ts";
 import {VaultService} from "./index.ts";
 import packageJSON from "./package.json";
 import {vaultConfigSchema} from "./VaultService.ts";
@@ -16,6 +18,9 @@ export default {
   install(app, config) {
     if (config.vault) {
       app.addServices(new VaultService(config.vault));
+      app.waitForService(AgentCommandService, commandService => {
+        commandService.addAgentCommands(chatCommands)
+      })
     }
   },
   config: packageConfigSchema
