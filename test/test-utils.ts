@@ -26,8 +26,8 @@ export function createMockPassword(password = 'test-password'): string {
 export function createMockAgent() {
   return {
     askHuman: vi.fn().mockResolvedValue('test-password'),
-    infoLine: vi.fn(),
-    errorLine: vi.fn(),
+    infoMessage: vi.fn(),
+    errorMessage: vi.fn(),
     generateCheckpoint: vi.fn(),
   };
 }

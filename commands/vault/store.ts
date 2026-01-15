@@ -6,7 +6,7 @@ export default async function store(remainder: string, agent: Agent): Promise<vo
   const key = remainder.trim();
   
   if (!key) {
-    agent.errorLine("Usage: /vault store <key>");
+    agent.errorMessage("Usage: /vault store <key>");
     return;
   }
 
@@ -16,10 +16,10 @@ export default async function store(remainder: string, agent: Agent): Promise<vo
   });
 
   if (!value) {
-    agent.infoLine("Store cancelled");
+    agent.infoMessage("Store cancelled");
     return;
   }
 
   await vaultService.setItem(key, value, agent);
-  agent.infoLine(`Stored credential: ${key}`);
+  agent.infoMessage(`Stored credential: ${key}`);
 }

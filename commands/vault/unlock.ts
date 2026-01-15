@@ -5,5 +5,5 @@ export default async function unlock(_remainder: string, agent: Agent): Promise<
   const vaultService = agent.requireServiceByType(VaultService);
   
   await vaultService.unlockVault(agent);
-  agent.infoLine("Vault unlocked successfully");
+  agent.infoMessage("Vault unlocked successfully");
 }

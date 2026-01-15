@@ -67,7 +67,7 @@ export default class VaultService implements TokenRingService {
   }
 
   private async initializeVault(agent: Agent): Promise<Record<string, string>> {
-    agent.infoLine("Vault file does not exist, creating a new empty vault.");
+    agent.infoMessage("Vault file does not exist, creating a new empty vault.");
 
     const password = await agent.askHuman({
       type: "askForPassword",

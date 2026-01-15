@@ -1,4 +1,5 @@
 import {Agent} from "@tokenring-ai/agent";
+import markdownList from "@tokenring-ai/utility/string/markdownList";
 import VaultService from "../../VaultService.js";
 
 export default async function list(_remainder: string, agent: Agent): Promise<void> {
@@ -8,11 +9,12 @@ export default async function list(_remainder: string, agent: Agent): Promise<vo
   const keys = Object.keys(vaultData);
   
   if (keys.length === 0) {
-    agent.infoLine("Vault is empty");
+    agent.infoMessage("Vault is empty");
   } else {
-    agent.infoLine("Vault credentials:");
-    for (const key of keys) {
-      agent.infoLine(`  - ${key}`);
-    }
+    const lines: string[] = [
+      "Vault credentials:",
+      markdownList(keys)
+    ];
+    agent.infoMessage(lines.join("\n"));
   }
 }

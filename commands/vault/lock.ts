@@ -5,5 +5,5 @@ export default async function lock(_remainder: string, agent: Agent): Promise<vo
   const vaultService = agent.requireServiceByType(VaultService);
   
   await vaultService.lock();
-  agent.infoLine("Vault locked");
+  agent.infoMessage("Vault locked");
 }
