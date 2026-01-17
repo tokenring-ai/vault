@@ -40,9 +40,10 @@ export default class VaultService implements TokenRingService {
     }
 
     if (!this.sessionPassword) {
-      const password = await agent.askHuman({
-        type: "askForPassword",
-        message: "Enter your password to unlock the vault."
+      const password = await agent.askForText({
+        masked: true,
+        message: "Enter your password to unlock the vault.",
+        label: "Password:"
       });
 
       if (!password) {
@@ -69,9 +70,10 @@ export default class VaultService implements TokenRingService {
   private async initializeVault(agent: Agent): Promise<Record<string, string>> {
     agent.infoMessage("Vault file does not exist, creating a new empty vault.");
 
-    const password = await agent.askHuman({
-      type: "askForPassword",
-      message: "Set a password for the new vault."
+    const password = await agent.askForText({
+      masked: true,
+      message: "Set a password for the new vault.",
+      label: "Password"
     });
 
     if (!password) {

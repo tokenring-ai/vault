@@ -1,10 +1,10 @@
 import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import createSubcommandRouter from "@tokenring-ai/agent/util/subcommandRouter";
-import unlock from "./vault/unlock.js";
-import lock from "./vault/lock.js";
-import list from "./vault/list.js";
-import store from "./vault/store.js";
 import get from "./vault/get.js";
+import list from "./vault/list.js";
+import lock from "./vault/lock.js";
+import store from "./vault/store.js";
+import unlock from "./vault/unlock.js";
 
 const description = "/vault - Manage encrypted credential vault";
 

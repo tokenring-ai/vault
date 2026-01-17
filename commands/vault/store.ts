@@ -10,9 +10,10 @@ export default async function store(remainder: string, agent: Agent): Promise<vo
     return;
   }
 
-  const value = await agent.askHuman({
-    type: "askForPassword",
-    message: `Enter value for "${key}"`
+  const value = await agent.askForText({
+    masked: true,
+    message: `Enter value for "${key}"`,
+    label: "Value"
   });
 
   if (!value) {

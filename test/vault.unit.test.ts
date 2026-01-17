@@ -1,14 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs-extra';
-import { 
-  encrypt, 
-  decrypt, 
-  readVault, 
-  writeVault, 
-  initVault,
-  deriveKey 
-} from '../vault.ts';
-import { createTempFile } from './test-utils.js';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {decrypt, deriveKey, encrypt, initVault, readVault, writeVault} from '../vault.ts';
+import {createTempFile} from './test-utils.js';
 
 describe('Vault Core Functions', () => {
   let tempDir: string;

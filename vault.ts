@@ -1,5 +1,5 @@
-import fs from "fs-extra";
 import crypto from "crypto";
+import fs from "fs-extra";
 
 export function deriveKey(password: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');

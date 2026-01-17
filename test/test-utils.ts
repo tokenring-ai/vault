@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { vi } from 'vitest';
+import {vi} from 'vitest';
 
 /**
  * Create a temporary directory for testing
@@ -21,11 +21,11 @@ export function createMockPassword(password = 'test-password'): string {
 }
 
 /**
- * Mock the agent.askHuman method for testing
+ * Mock the agent.askQuestion method for testing
  */
 export function createMockAgent() {
   return {
-    askHuman: vi.fn().mockResolvedValue('test-password'),
+    askQuestion: vi.fn().mockResolvedValue('test-password'),
     infoMessage: vi.fn(),
     errorMessage: vi.fn(),
     generateCheckpoint: vi.fn(),

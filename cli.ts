@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
-import { Command } from 'commander';
-import { spawn } from 'child_process';
-import { readVault, writeVault, initVault } from './vault.ts';
+import {spawn} from 'child_process';
+import {Command} from 'commander';
 import readline from 'readline';
+import {initVault, readVault, writeVault} from './vault.ts';
 
 let rlInterface: readline.Interface | undefined;
 

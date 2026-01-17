@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import createTestingAgent from "@tokenring-ai/agent/test/createTestingAgent";
-import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
 import Agent from '@tokenring-ai/agent/Agent';
+import createTestingAgent from "@tokenring-ai/agent/test/createTestingAgent";
 import TokenRingApp from "@tokenring-ai/app";
-import VaultService from '../VaultService.ts';
+import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
 import fs from 'fs-extra';
-import { createTempFile } from './test-utils.ts';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import VaultService from '../VaultService.ts';
+import {createTempFile} from './test-utils.ts';
 
 describe('VaultService', () => {
   let vaultService: VaultService;
@@ -22,7 +22,7 @@ describe('VaultService', () => {
     agent = createTestingAgent(app);
     
     // Mock the agent methods
-    vi.spyOn(agent, 'askHuman').mockResolvedValue('test-password');
+    vi.spyOn(agent, 'askQuestion').mockResolvedValue('test-password');
     
     const config = {
       vaultFile: tempVaultFile,
@@ -49,7 +49,7 @@ describe('VaultService', () => {
       const result = await vaultService.unlockVault(agent);
       
       expect(result).toEqual({});
-      expect(agent.askHuman).toHaveBeenCalledWith({
+      expect(agent.askQuestion).toHaveBeenCalledWith({
         type: 'askForPassword',
         message: 'Set a password for the new vault.'
       });
@@ -65,7 +65,7 @@ describe('VaultService', () => {
       const result = await vaultService.unlockVault(agent);
       
       expect(result).toEqual({});
-      expect(agent.askHuman).toHaveBeenCalledWith({
+      expect(agent.askQuestion).toHaveBeenCalledWith({
         type: 'askForPassword',
         message: 'Enter your password to unlock the vault.'
       });
@@ -76,8 +76,8 @@ describe('VaultService', () => {
       await vaultService.unlockVault(agent);
       await vaultService.lock(); // Ensure it's locked
       
-      // Mock askHuman to return wrong password
-      vi.spyOn(agent, 'askHuman').mockResolvedValue('wrong-password');
+      // Mock askQuestion to return wrong password
+      vi.spyOn(agent, 'askQuestion').mockResolvedValue('wrong-password');
       
       await expect(vaultService.unlockVault(agent))
         .rejects.toThrow('Failed to decrypt vault. Invalid password or corrupted vault file.');
@@ -88,7 +88,7 @@ describe('VaultService', () => {
       await vaultService.unlockVault(agent);
       await vaultService.lock();
 
-      vi.spyOn(agent, 'askHuman').mockResolvedValue('');
+      vi.spyOn(agent, 'askQuestion').mockResolvedValue('');
       
       await expect(vaultService.unlockVault(agent))
         .rejects.toThrow('Password was empty, vault unlock cancelled');
@@ -169,7 +169,7 @@ describe('VaultService', () => {
       // Second call should use cached password
       await vaultService.unlockVault(agent);
       
-      expect(agent.askHuman).not.toHaveBeenCalled();
+      expect(agent.askQuestion).not.toHaveBeenCalled();
     });
 
     it('should clear session on lock', async () => {
@@ -179,7 +179,7 @@ describe('VaultService', () => {
       // After lock, should ask for password again
       await vaultService.unlockVault(agent);
       
-      expect(agent.askHuman).toHaveBeenCalled();
+      expect(agent.askQuestion).toHaveBeenCalled();
     });
 
     it('should clear session on incorrect password', async () => {

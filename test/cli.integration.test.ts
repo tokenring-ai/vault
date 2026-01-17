@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { spawn } from 'child_process';
+import {spawn} from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
-import { createTempFile } from './test-utils.js';
-import { setTimeout } from 'timers/promises';
+import {setTimeout} from 'timers/promises';
+import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {createTempFile} from './test-utils.js';
 
 describe('Vault CLI Integration', () => {
   let tempDir: string;

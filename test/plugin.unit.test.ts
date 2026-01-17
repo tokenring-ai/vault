@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import TokenRingApp from '@tokenring-ai/app';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import plugin from '../plugin.js';
 
 describe('Vault Plugin', () => {
