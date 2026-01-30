@@ -9,8 +9,8 @@
     "fs-extra": "^11.3.3"
   },
   "devDependencies": {
-    "vitest": "catalog:",
-    "typescript": "catalog:"
+    "vitest": "^4.0.18",
+    "typescript": "^5.9.3"
   },
   "exports": {
     ".": "./index.ts",
