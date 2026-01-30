@@ -5,10 +5,10 @@ import {z} from "zod";
 import chatCommands from "./chatCommands.ts";
 import {VaultService} from "./index.ts";
 import packageJSON from "./package.json";
-import {vaultConfigSchema} from "./VaultService.ts";
+import {VaultConfigSchema} from "./schema.ts";
 
 const packageConfigSchema = z.object({
-  vault: vaultConfigSchema.optional()
+  vault: VaultConfigSchema.optional()
 });
 
 export default {

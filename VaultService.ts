@@ -1,14 +1,8 @@
 import {Agent} from "@tokenring-ai/agent";
 import {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
-import {z} from "zod";
+import type {ParsedVaultConfig} from "./schema.ts";
 import {initVault, readVault, writeVault} from "./vault.ts";
-
-export const vaultConfigSchema = z.object({
-  vaultFile: z.string().min(1),
-  relockTime: z.number().positive(),
-})
-
 
 export default class VaultService implements TokenRingService {
   // Add password caching during session
@@ -17,25 +11,21 @@ export default class VaultService implements TokenRingService {
   name = "VaultService";
   description = "A vault service for storing persisted credentials";
 
-  private readonly vaultFile: string;
   private vaultData: Record<string, string> | undefined;
   private relockTimer: NodeJS.Timeout | undefined;
-  private readonly relockTime = 300 * 1000; // 5 minutes
 
-  constructor(options: z.output<typeof vaultConfigSchema>) {
-    this.vaultFile = options.vaultFile;
-    this.relockTime = options.relockTime;
+  constructor(readonly options: ParsedVaultConfig) {
   }
 
   async unlockVault(agent: Agent): Promise<Record<string, string>> {
     if (this.relockTimer) {
       clearTimeout(this.relockTimer);
-      this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
+      this.relockTimer = setTimeout(() => this.lock(), this.options.relockTime);
     }
 
     if (this.vaultData) return this.vaultData;
 
-    if (!await fs.pathExists(this.vaultFile)) {
+    if (!await fs.pathExists(this.options.vaultFile)) {
       return await this.initializeVault(agent);
     }
 
@@ -54,7 +44,7 @@ export default class VaultService implements TokenRingService {
     }
 
     try {
-      this.vaultData = await readVault(this.vaultFile, this.sessionPassword);
+      this.vaultData = await readVault(this.options.vaultFile, this.sessionPassword);
       this.scheduleRelock();
       return this.vaultData;
     } catch (error) {
@@ -63,8 +53,26 @@ export default class VaultService implements TokenRingService {
     }
   }
 
+  async save(vaultData: Record<string, string>, agent: Agent) {
+    if (!this.sessionPassword) {
+      throw new Error('Vault must be unlocked before saving');
+    }
+
+    await writeVault(this.options.vaultFile, this.sessionPassword, vaultData);
+    this.vaultData = vaultData;
+  }
+
   private scheduleRelock(): void {
-    this.relockTimer = setTimeout(() => this.lock(), this.relockTime);
+    this.relockTimer = setTimeout(() => this.lock(), this.options.relockTime);
+  }
+
+  async lock(): Promise<void> {
+    this.vaultData = undefined;
+    this.sessionPassword = undefined;
+    if (this.relockTimer) {
+      clearTimeout(this.relockTimer);
+      this.relockTimer = undefined;
+    }
   }
 
   private async initializeVault(agent: Agent): Promise<Record<string, string>> {
@@ -81,28 +89,10 @@ export default class VaultService implements TokenRingService {
     }
 
     this.sessionPassword = password;
-    await initVault(this.vaultFile, this.sessionPassword);
+    await initVault(this.options.vaultFile, this.sessionPassword);
     this.vaultData = {};
     this.scheduleRelock();
     return {};
-  }
-
-  async lock(): Promise<void> {
-    this.vaultData = undefined;
-    this.sessionPassword = undefined;
-    if (this.relockTimer) {
-      clearTimeout(this.relockTimer);
-      this.relockTimer = undefined;
-    }
-  }
-
-  async save(vaultData: Record<string, string>, agent: Agent) {
-    if (!this.sessionPassword) {
-      throw new Error('Vault must be unlocked before saving');
-    }
-
-    await writeVault(this.vaultFile, this.sessionPassword, vaultData);
-    this.vaultData = vaultData;
   }
 
   async getItem(key: string, agent: Agent): Promise<string | undefined> {
