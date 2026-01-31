@@ -14,12 +14,38 @@ A secure, encrypted vault for managing secrets and credentials. Works both as a 
 - **Session Management**: Automatic locking and password caching for TokenRing service
 - **Plugin Integration**: Seamless integration with TokenRing application framework
 - **Commander CLI**: Full featured command-line interface with password masking
+- **Chat Commands**: Integrated chat commands for agent interaction (/vault unlock, lock, list, store, get)
 - **Zod Configuration**: Type-safe configuration with schema validation
 - **Comprehensive Testing**: Unit and integration tests with Vitest
 
 ## Chat Commands
 
-This package does not have a chatCommands.ts file or commands/ directory.
+The vault package provides integrated chat commands for managing credentials within the agent interface:
+
+### `/vault unlock`
+Unlock the vault with password
+
+### `/vault lock`
+Lock the vault
+
+### `/vault list`
+List all credential keys in the vault
+
+### `/vault store <key>`
+Store a credential in the vault
+- Prompts for the credential value securely
+
+### `/vault get <key>`
+Retrieve and display a credential from the vault
+
+**Example usage:**
+```
+/vault unlock
+/vault list
+/vault store api_key
+/vault get api_key
+/vault lock
+```
 
 ## Plugin Configuration
 
@@ -192,8 +218,7 @@ Change the vault encryption password.
 
 Run a command with vault secrets injected as environment variables.
 
-
-### TokenRing Integration
+## TokenRing Integration
 
 ```typescript
 import { Agent } from '@tokenring-ai/agent';
@@ -207,9 +232,13 @@ const agent = new Agent({
 
 // Access a secret
 const apiKey = await agent.getService('VaultService').getItem('API_KEY', agent);
+
+// Or use chat commands
+// /vault unlock
+// /vault get API_KEY
 ```
 
-### Programmatic Vault Access
+## Programmatic Vault Access
 
 ```typescript
 import { readVault, writeVault, initVault, deriveKey } from '@tokenring-ai/vault/vault';
@@ -294,11 +323,20 @@ bun run test:coverage
 
 ```
 pkg/vault/
-├── VaultService.ts      # Main service implementation
-├── vault.ts             # Core encryption/decryption functions
-├── plugin.ts            # TokenRing plugin definition
-├── cli.ts               # CLI interface with Commander
-├── index.ts             # Module exports
+├── VaultService.ts          # Main service implementation
+├── vault.ts                 # Core encryption/decryption functions
+├── plugin.ts                # TokenRing plugin definition
+├── cli.ts                   # CLI interface with Commander
+├── index.ts                 # Module exports
+├── schema.ts                # Zod configuration schema
+├── chatCommands.ts          # Chat commands for agent integration
+├── commands/                # Chat command implementations
+│   ├── vault.ts            # Main command router
+│   ├── unlock.ts           # Unlock command
+│   ├── lock.ts             # Lock command
+│   ├── list.ts             # List command
+│   ├── store.ts            # Store command
+│   └── get.ts              # Get command
 ├── package.json
 ├── vitest.config.ts
 ├── LICENSE
