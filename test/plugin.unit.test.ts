@@ -1,16 +1,15 @@
+import TokenRingApp from "@tokenring-ai/app";
+import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import plugin from '../plugin.js';
 
 describe('Vault Plugin', () => {
-  let mockApp: any;
+  let mockApp: TokenRingApp;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    mockApp = {
-      getConfigSlice: vi.fn(),
-      addServices: vi.fn(),
-    } as any;
+    mockApp = createTestingApp()
   });
 
   afterEach(() => {
@@ -31,7 +30,7 @@ describe('Vault Plugin', () => {
 
   describe('install', () => {
     it('should not install without config when no vault config provided', () => {
-      mockApp.getConfigSlice = vi.fn().mockReturnValue(undefined);
+      vi.spyOn(mockApp, 'addServices')
 
       plugin.install(mockApp, {});
 
@@ -39,6 +38,7 @@ describe('Vault Plugin', () => {
     });
 
     it('should install with config when vault config provided', () => {
+      vi.spyOn(mockApp, 'addServices')
       plugin.install(mockApp, { vault: {
           vaultFile: '/path/to/vault',
           relockTime: 300000

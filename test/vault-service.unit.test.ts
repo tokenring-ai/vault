@@ -47,11 +47,15 @@ describe('VaultService', () => {
   describe('unlockVault', () => {
     it('should initialize new vault if file does not exist', async () => {
       const result = await vaultService.unlockVault(agent);
-      
+
       expect(result).toEqual({});
       expect(agent.askQuestion).toHaveBeenCalledWith({
-        type: 'askForPassword',
-        message: 'Set a password for the new vault.'
+        "message": "Set a password for the new vault.",
+        "question": {
+          "label": "Password",
+          "masked": true,
+          "type": "text",
+        }
       });
     });
 
@@ -66,8 +70,12 @@ describe('VaultService', () => {
       
       expect(result).toEqual({});
       expect(agent.askQuestion).toHaveBeenCalledWith({
-        type: 'askForPassword',
-        message: 'Enter your password to unlock the vault.'
+        "message": "Enter your password to unlock the vault.",
+        "question": {
+          "label": "Password:",
+          "masked": true,
+          "type": "text",
+        },
       });
     });
 
