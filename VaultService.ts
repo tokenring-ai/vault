@@ -8,7 +8,7 @@ export default class VaultService implements TokenRingService {
   // Add password caching during session
   private sessionPassword: string | undefined;
 
-  name = "VaultService";
+  readonly name = "VaultService";
   description = "A vault service for storing persisted credentials";
 
   private vaultData: Record<string, string> | undefined;
