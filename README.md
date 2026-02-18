@@ -1,7 +1,5 @@
 # @tokenring-ai/vault
 
-## Overview
-
 A secure, encrypted vault for managing secrets and credentials. Works both as a standalone CLI tool and as a TokenRing service for programmatic access. The vault uses AES-256-GCM encryption with PBKDF2 key derivation for strong security. Files are stored with restrictive permissions (0o600), and the service automatically locks after a configurable timeout to prevent unauthorized access.
 
 ## Features
@@ -49,7 +47,7 @@ Retrieve and display a credential from the vault
 
 ## Plugin Configuration
 
-The plugin configuration options are defined in plugin.ts and VaultService.ts.
+The plugin configuration options are defined in plugin.ts and schema.ts.
 
 ```typescript
 import vaultPlugin from '@tokenring-ai/vault';
@@ -67,13 +65,29 @@ const packageConfigSchema = z.object({
 });
 ```
 
+### Plugin Configuration Schema
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `vault` | `VaultConfigSchema` | `undefined` | Optional vault configuration |
+
 ## Agent Configuration
 
 The VaultService has an attach method that merges in an agent config schema.
 
+### VaultService Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `vaultFile` | string | `.vault` | Path to the vault file |
+| `relockTime` | number | `300000` | Time in milliseconds before the vault automatically locks |
+
+**Example:**
 ```typescript
-// The VaultService doesn't have a separate agent config schema
-// It uses the vaultConfigSchema from the plugin configuration
+new VaultService({
+  vaultFile: '.vault',
+  relockTime: 300000 // 5 minutes
+});
 ```
 
 ## Tools
@@ -87,13 +101,14 @@ This package does not have a tools.ts file or tools/ directory.
 The main service class for programmatic access to the vault.
 
 ```typescript
-import VaultService from '@tokenring-ai/vault';
+import { VaultService } from '@tokenring-ai/vault';
 ```
 
 **Properties:**
 
 - `name`: "VaultService" - The service identifier
 - `description`: "A vault service for storing persisted credentials" - Service description
+- `options`: ParsedVaultConfig - The configuration options passed to the constructor
 
 **Methods:**
 
@@ -264,22 +279,15 @@ const key = deriveKey('myPassword', salt);
 
 ```typescript
 import { VaultService } from '@tokenring-ai/vault';
-import { vaultConfigSchema } from '@tokenring-ai/vault';
+import { VaultConfigSchema } from '@tokenring-ai/vault';
 
-const config = vaultConfigSchema.parse({
+const config = VaultConfigSchema.parse({
   vaultFile: '.vault',
   relockTime: 300000,  // 5 minutes in milliseconds
 });
 
 const vault = new VaultService(config);
 ```
-
-**Configuration Options:**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `vaultFile` | string | `.vault` | Path to the vault file |
-| `relockTime` | number | `300000` | Time in milliseconds before the vault automatically locks |
 
 ### Plugin Configuration
 
