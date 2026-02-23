@@ -1,20 +1,20 @@
 import {Agent} from "@tokenring-ai/agent";
+import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import VaultService from "../../VaultService.js";
 
-export default async function get(remainder: string, agent: Agent): Promise<void> {
+export default async function get(remainder: string, agent: Agent): Promise<string> {
   const vaultService = agent.requireServiceByType(VaultService);
   const key = remainder.trim();
   
   if (!key) {
-    agent.errorMessage("Usage: /vault get <key>");
-    return;
+    throw new CommandFailedError("Usage: /vault get <key>");
   }
 
   const value = await vaultService.getItem(key, agent);
   
   if (value === undefined) {
-    agent.errorMessage(`Credential "${key}" not found in vault`);
+    throw new CommandFailedError(`Credential "${key}" not found in vault`);
   } else {
-    agent.infoMessage(`${key}: ${value}`);
+    return `${key}: ${value}`;
   }
 }

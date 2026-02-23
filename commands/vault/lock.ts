@@ -1,9 +1,9 @@
 import {Agent} from "@tokenring-ai/agent";
 import VaultService from "../../VaultService.js";
 
-export default async function lock(_remainder: string, agent: Agent): Promise<void> {
+export default async function lock(_remainder: string, agent: Agent): Promise<string> {
   const vaultService = agent.requireServiceByType(VaultService);
   
   await vaultService.lock();
-  agent.infoMessage("Vault locked");
+  return "Vault locked";
 }

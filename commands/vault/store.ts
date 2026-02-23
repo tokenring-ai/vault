@@ -1,13 +1,13 @@
 import {Agent} from "@tokenring-ai/agent";
+import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import VaultService from "../../VaultService.js";
 
-export default async function store(remainder: string, agent: Agent): Promise<void> {
+export default async function store(remainder: string, agent: Agent): Promise<string> {
   const vaultService = agent.requireServiceByType(VaultService);
   const key = remainder.trim();
   
   if (!key) {
-    agent.errorMessage("Usage: /vault store <key>");
-    return;
+    throw new CommandFailedError("Usage: /vault store <key>");
   }
 
   const value = await agent.askForText({
@@ -17,10 +17,9 @@ export default async function store(remainder: string, agent: Agent): Promise<vo
   });
 
   if (!value) {
-    agent.infoMessage("Store cancelled");
-    return;
+    return "Store cancelled";
   }
 
   await vaultService.setItem(key, value, agent);
-  agent.infoMessage(`Stored credential: ${key}`);
+  return `Stored credential: ${key}`;
 }
