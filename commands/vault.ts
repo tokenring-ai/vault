@@ -45,6 +45,7 @@ Retrieve and display a credential from the vault
 /vault lock`;
 
 export default {
+  name: "vault",
   description,
   execute,
   help,

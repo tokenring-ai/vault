@@ -1,5 +1,5 @@
 import vault from "./commands/vault.ts"
 
-export default {
+export default [
   vault,
-};
+];
