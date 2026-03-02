@@ -1,9 +1,19 @@
 import {Agent} from "@tokenring-ai/agent";
+import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import VaultService from "../../VaultService.js";
 
-export default async function unlock(_remainder: string, agent: Agent): Promise<string> {
-  const vaultService = agent.requireServiceByType(VaultService);
-  
-  await vaultService.unlockVault(agent);
-  return "Vault unlocked successfully";
-}
+export default {
+  name: "vault unlock",
+  description: "/vault unlock - Unlock the vault",
+  help: `# /vault unlock
+
+Unlock the vault with a password prompt.
+
+## Example
+
+/vault unlock`,
+  execute: async (_remainder: string, agent: Agent): Promise<string> => {
+    await agent.requireServiceByType(VaultService).unlockVault(agent);
+    return "Vault unlocked successfully";
+  },
+} satisfies TokenRingAgentCommand;

@@ -1,20 +1,17 @@
 import {Agent} from "@tokenring-ai/agent";
+import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import markdownList from "@tokenring-ai/utility/string/markdownList";
 import VaultService from "../../VaultService.js";
 
-export default async function list(_remainder: string, agent: Agent): Promise<string> {
-  const vaultService = agent.requireServiceByType(VaultService);
-  
-  const vaultData = await vaultService.unlockVault(agent);
-  const keys = Object.keys(vaultData);
-  
-  if (keys.length === 0) {
-    return "Vault is empty";
-  } else {
-    const lines: string[] = [
-      "Vault credentials:",
-      markdownList(keys)
-    ];
-    return lines.join("\n");
-  }
+async function execute(_remainder: string, agent: Agent): Promise<string> {
+  const keys = Object.keys(await agent.requireServiceByType(VaultService).unlockVault(agent));
+  return keys.length === 0 ? "Vault is empty" : `Vault credentials:\n${markdownList(keys)}`;
 }
+
+export default { name: "vault list", description: "/vault list - List vault credentials", help: `# /vault list
+
+List all credential keys stored in the vault.
+
+## Example
+
+/vault list`, execute } satisfies TokenRingAgentCommand;
