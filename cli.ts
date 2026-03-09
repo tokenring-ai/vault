@@ -3,6 +3,7 @@ import {spawn} from 'child_process';
 import {Command} from 'commander';
 import readline from 'readline';
 import {initVault, readVault, writeVault} from './vault.ts';
+import packageJSON from './package.json' assert { type: 'json' };
 
 let rlInterface: readline.Interface | undefined;
 
@@ -61,7 +62,7 @@ const program = new Command();
 
 program
   .name('vault')
-  .version('0.1.0')
+  .version(packageJSON.version)
   .description('Encrypted vault for managing secrets')
   .option('-f, --file <path>', 'Vault file path', '.vault');
 
