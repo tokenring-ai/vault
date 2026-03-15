@@ -2,7 +2,11 @@
 
 A secure, encrypted vault for managing secrets and credentials. Works both as a standalone CLI tool and as a TokenRing service for programmatic access. The vault uses AES-256-GCM encryption with PBKDF2 key derivation for strong security. Files are stored with restrictive permissions (0o600), and the service automatically locks after a configurable timeout to prevent unauthorized access.
 
-## Features
+## Overview
+
+The `@tokenring-ai/vault` package provides a comprehensive secret management solution for the TokenRing AI ecosystem. It offers both CLI and programmatic interfaces for secure storage and retrieval of credentials, API keys, and other sensitive data.
+
+### Key Features
 
 - **AES-256-GCM Encryption**: Industry-standard encryption for secrets at rest
 - **Dual Interface**: Use as CLI tool or integrate as TokenRing service
@@ -12,7 +16,7 @@ A secure, encrypted vault for managing secrets and credentials. Works both as a 
 - **Session Management**: Automatic locking and password caching for TokenRing service
 - **Plugin Integration**: Seamless integration with TokenRing application framework
 - **Commander CLI**: Full featured command-line interface with password masking
-- **Chat Commands**: Integrated chat commands for agent interaction (/vault unlock, lock, list, store, get)
+- **Chat Commands**: Integrated chat commands for agent interaction (`/vault unlock`, `lock`, `list`, `store`, `get`)
 - **Zod Configuration**: Type-safe configuration with schema validation
 - **Comprehensive Testing**: Unit and integration tests with Vitest
 
@@ -21,98 +25,6 @@ A secure, encrypted vault for managing secrets and credentials. Works both as a 
 ```bash
 bun install @tokenring-ai/vault
 ```
-
-## Chat Commands
-
-The vault package provides integrated chat commands for managing credentials within the agent interface:
-
-### `/vault unlock`
-Unlock the vault with password
-
-**Example:**
-```
-/vault unlock
-```
-
-### `/vault lock`
-Lock the vault
-
-**Example:**
-```
-/vault lock
-```
-
-### `/vault list`
-List all credential keys in the vault
-
-**Example:**
-```
-/vault list
-```
-
-### `/vault store <key>`
-Store a credential in the vault
-- Prompts for the credential value securely
-
-**Example:**
-```
-/vault store api_key
-```
-
-### `/vault get <key>`
-Retrieve and display a credential from the vault
-
-**Example:**
-```
-/vault get api_key
-```
-
-**Complete usage example:**
-```
-/vault unlock
-/vault list
-/vault store api_key
-/vault get api_key
-/vault lock
-```
-
-## Plugin Configuration
-
-The plugin can be installed with optional configuration in your TokenRing application:
-
-```typescript
-import vaultPlugin from '@tokenring-ai/vault';
-import TokenRingApp from '@tokenring-ai/app';
-
-const app = new TokenRingApp();
-app.usePlugin(vaultPlugin, {
-  vault: {
-    vaultFile: '.vault',
-    relockTime: 300000 // 5 minutes
-  }
-});
-```
-
-### Plugin Configuration Schema
-
-The plugin configuration is validated using Zod:
-
-```typescript
-const packageConfigSchema = z.object({
-  vault: VaultConfigSchema.optional()
-});
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `vault` | `VaultConfig` | `undefined` | Optional vault configuration object |
-
-### VaultConfig Schema
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `vaultFile` | `string` | Required | Path to the vault file |
-| `relockTime` | `number` | `300000` | Time in milliseconds before the vault automatically locks (default: 5 minutes) |
 
 ## Core Components
 
@@ -165,13 +77,12 @@ Locks the vault, clearing all cached data and session password. The vault must b
 await vaultService.lock();
 ```
 
-#### `save(vaultData: Record<string, string>, agent: Agent): Promise<void>`
+#### `save(vaultData: Record<string, string>): Promise<void>`
 
 Writes the updated vault data to the vault file, re-encrypting it with the current session password.
 
 - **Parameters:**
   - `vaultData` (`Record<string, string>`): The updated vault data to save.
-  - `agent` (`Agent`): Agent instance for interaction.
 - **Returns:** `Promise<void>`
 - **Throws:** Error if vault is not unlocked (no session password)
 
@@ -179,7 +90,7 @@ Writes the updated vault data to the vault file, re-encrypting it with the curre
 ```typescript
 const data = await vaultService.unlockVault(agent);
 data['NEW_KEY'] = 'new_value';
-await vaultService.save(data, agent);
+await vaultService.save(data);
 ```
 
 #### `getItem(key: string, agent: Agent): Promise<string | undefined>`
@@ -278,6 +189,103 @@ Initializes a new empty vault file.
   - `vaultFile` (`string`): Path to the new vault file.
   - `password` (`string`): The encryption password.
 - **Returns:** `Promise<void>`
+
+## Chat Commands
+
+The vault package provides integrated chat commands for managing credentials within the agent interface:
+
+### `/vault unlock`
+
+Unlock the vault with password
+
+**Example:**
+```
+/vault unlock
+```
+
+### `/vault lock`
+
+Lock the vault
+
+**Example:**
+```
+/vault lock
+```
+
+### `/vault list`
+
+List all credential keys in the vault
+
+**Example:**
+```
+/vault list
+```
+
+### `/vault store <key>`
+
+Store a credential in the vault
+- Prompts for the credential value securely
+
+**Example:**
+```
+/vault store api_key
+```
+
+### `/vault get <key>`
+
+Retrieve and display a credential from the vault
+
+**Example:**
+```
+/vault get api_key
+```
+
+**Complete usage example:**
+```
+/vault unlock
+/vault list
+/vault store api_key
+/vault get api_key
+/vault lock
+```
+
+## Plugin Configuration
+
+The plugin can be installed with optional configuration in your TokenRing application:
+
+```typescript
+import vaultPlugin from '@tokenring-ai/vault';
+import TokenRingApp from '@tokenring-ai/app';
+
+const app = new TokenRingApp();
+app.usePlugin(vaultPlugin, {
+  vault: {
+    vaultFile: '.vault',
+    relockTime: 300000 // 5 minutes
+  }
+});
+```
+
+### Plugin Configuration Schema
+
+The plugin configuration is validated using Zod:
+
+```typescript
+const packageConfigSchema = z.object({
+  vault: VaultConfigSchema.optional()
+});
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `vault` | `VaultConfig` | `undefined` | Optional vault configuration object |
+
+### VaultConfig Schema
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `vaultFile` | `string` | Required | Path to the vault file |
+| `relockTime` | `number` | `300000` | Time in milliseconds before the vault automatically locks (default: 5 minutes) |
 
 ## CLI Usage
 
@@ -633,21 +641,21 @@ pkg/vault/
 | `@tokenring-ai/utility` | `0.2.0` | Shared utilities |
 | `@types/fs-extra` | `^11.0.4` | TypeScript types for fs-extra |
 | `commander` | `^14.0.3` | CLI framework |
-| `fs-extra` | `^11.3.3` | File system operations |
+| `fs-extra` | `^11.3.4` | File system operations |
 | `zod` | `^4.3.6` | Schema validation |
 
 ### Dev Dependencies
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| `vitest` | `^4.0.18` | Testing framework |
+| `vitest` | `^4.1.0` | Testing framework |
 | `typescript` | `^5.9.3` | TypeScript compiler |
 
 ## Related Components
 
 - **@tokenring-ai/agent** - Agent system that integrates with VaultService
 - **@tokenring-ai/app** - Application framework with plugin system
-- **@tokenring-ai/utility** - Utility functions including markdownList for command output
+- **@tokenring-ai/utility** - Utility functions including `markdownList` for command output
 
 ## License
 
