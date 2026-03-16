@@ -11,7 +11,8 @@ async function execute(remainder: string, agent: Agent): Promise<string> {
   return `${key}: ${value}`;
 }
 
-export default { name: "vault get", description: "/vault get - Retrieve a credential", help: `# /vault get <key>
+export default {
+  name: "vault get", description: "Retrieve a credential", help: `# /vault get <key>
 
 Retrieve and display a credential from the vault.
 

@@ -12,7 +12,8 @@ async function execute(remainder: string, agent: Agent): Promise<string> {
   return `Stored credential: ${key}`;
 }
 
-export default { name: "vault store", description: "/vault store - Store a credential", help: `# /vault store <key>
+export default {
+  name: "vault store", description: "Store a credential", help: `# /vault store <key>
 
 Store a credential in the vault. Prompts securely for the value.
 

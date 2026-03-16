@@ -4,7 +4,7 @@ import VaultService from "../../VaultService.js";
 
 export default {
   name: "vault unlock",
-  description: "/vault unlock - Unlock the vault",
+  description: "Unlock the vault",
   help: `# /vault unlock
 
 Unlock the vault with a password prompt.

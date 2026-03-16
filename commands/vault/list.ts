@@ -8,7 +8,8 @@ async function execute(_remainder: string, agent: Agent): Promise<string> {
   return keys.length === 0 ? "Vault is empty" : `Vault credentials:\n${markdownList(keys)}`;
 }
 
-export default { name: "vault list", description: "/vault list - List vault credentials", help: `# /vault list
+export default {
+  name: "vault list", description: "List vault credentials", help: `# /vault list
 
 List all credential keys stored in the vault.
 
