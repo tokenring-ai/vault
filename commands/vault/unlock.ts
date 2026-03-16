@@ -1,19 +1,19 @@
-import {Agent} from "@tokenring-ai/agent";
-import {TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
 import VaultService from "../../VaultService.js";
+
+const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
 export default {
   name: "vault unlock",
   description: "Unlock the vault",
-  help: `# /vault unlock
-
-Unlock the vault with a password prompt.
+  help: `Unlock the vault with a password prompt.
 
 ## Example
 
 /vault unlock`,
-  execute: async (_remainder: string, agent: Agent): Promise<string> => {
+  inputSchema,
+  execute: async ({agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
     await agent.requireServiceByType(VaultService).unlockVault(agent);
     return "Vault unlocked successfully";
   },
-} satisfies TokenRingAgentCommand;
+} satisfies TokenRingAgentCommand<typeof inputSchema>;
