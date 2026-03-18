@@ -3,8 +3,7 @@ import VaultService from "../../VaultService.js";
 
 const inputSchema = {
   args: {},
-  positionals: [{name: "key", description: "Credential key", required: true}],
-  allowAttachments: false,
+  positionals: [{name: "key", description: "Credential key", required: true}]
 } as const satisfies AgentCommandInputSchema;
 
 async function execute({positionals: {key}, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
