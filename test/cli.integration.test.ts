@@ -19,7 +19,7 @@ describe('Vault CLI Integration', () => {
   });
 
   function runCommand(command: string, args: string[], password?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise( async (resolve) => {
+    return new Promise(async (resolve) => {
       const child = spawn('bun', [path.join(__dirname, '../cli.ts'), command, ...args, '--file', vaultFile], {
         cwd: __dirname,
         env: { ...process.env, BUNDLE_ALLOW_RUNTIME: '1' }
@@ -37,10 +37,9 @@ describe('Vault CLI Integration', () => {
       });
 
       child.on('close', (exitCode) => {
-        stdout = stdout.trim().replace(/Enter vault password:/, '');
+        stdout = stdout.trim().replace(/Enter vault password:|Set a password for the new vault:|Enter current vault password:|Enter new vault password:/g, '');
         resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
       });
-
 
       if (password) {
         // Handle multiple password prompts by splitting by newline
@@ -51,9 +50,6 @@ describe('Vault CLI Integration', () => {
         }
 
         await setTimeout(100);
-        // We don't end stdin here because we might need it for multiple prompts
-        // but since we are in non-TTY mode, child.stdin.write should be enough
-        // and we can end it after all passwords are sent if we know how many
         child.stdin.end();
       }
     });
@@ -89,7 +85,7 @@ describe('Vault CLI Integration', () => {
       
       const result = await runCommand('get', ['key1'], 'test-password');
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe('value1');
+      expect(result.stdout.trim()).toBe('key1: value1');
     });
   });
 
@@ -103,7 +99,7 @@ describe('Vault CLI Integration', () => {
       const result = await runCommand('get', ['test-key'], 'test-password');
       
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe('test-value');
+      expect(result.stdout.trim()).toBe('test-key: test-value');
     });
 
     it('should handle non-existing key', async () => {
@@ -165,7 +161,7 @@ describe('Vault CLI Integration', () => {
       expect(result.stdout).toContain('Password changed successfully');
       
       const getResult = await runCommand('get', ['test-key'], 'new-password');
-      expect(getResult.stdout.trim()).toBe('test-value');
+      expect(getResult.stdout.trim()).toBe('test-key: test-value');
     });
   });
 

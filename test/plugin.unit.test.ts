@@ -9,7 +9,7 @@ describe('Vault Plugin', () => {
 
   beforeEach(() => {
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    mockApp = createTestingApp()
+    mockApp = createTestingApp();
   });
 
   afterEach(() => {
@@ -30,22 +30,27 @@ describe('Vault Plugin', () => {
 
   describe('install', () => {
     it('should not install without config when no vault config provided', () => {
-      vi.spyOn(mockApp, 'addServices')
+      vi.spyOn(mockApp, 'addServices');
+      vi.spyOn(mockApp, 'waitForService');
 
       plugin.install(mockApp, {});
 
       expect(mockApp.addServices).not.toHaveBeenCalled();
+      expect(mockApp.waitForService).not.toHaveBeenCalled();
     });
 
     it('should install with config when vault config provided', () => {
-      vi.spyOn(mockApp, 'addServices')
+      const mockAddServices = vi.spyOn(mockApp, 'addServices');
+      const mockWaitForService = vi.spyOn(mockApp, 'waitForService');
+      
       plugin.install(mockApp, { vault: {
           vaultFile: '/path/to/vault',
           relockTime: 300000
         }
       });
       
-      expect(mockApp.addServices).toHaveBeenCalled();
+      expect(mockAddServices).toHaveBeenCalled();
+      expect(mockWaitForService).toHaveBeenCalled();
     });
   });
 });
