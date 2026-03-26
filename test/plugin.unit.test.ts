@@ -1,7 +1,7 @@
 import TokenRingApp from "@tokenring-ai/app";
 import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import plugin from '../plugin.js';
+import plugin from '../plugin.ts';
 
 describe('Vault Plugin', () => {
   let mockApp: TokenRingApp;

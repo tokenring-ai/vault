@@ -1,6 +1,6 @@
 import {CommandFailedError} from "@tokenring-ai/agent/AgentError";
 import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
-import VaultService from "../../VaultService.js";
+import VaultService from "../../VaultService.ts";
 
 const inputSchema = {
   args: {},

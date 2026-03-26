@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import {setTimeout as delay} from 'timers/promises';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {createTempFile} from './test-utils.js';
+import {createTempFile} from './test-utils.ts';
 
 describe('Vault CLI Integration', () => {
   let tempDir: string;

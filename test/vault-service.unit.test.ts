@@ -4,8 +4,8 @@ import TokenRingApp from "@tokenring-ai/app";
 import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
 import fs from 'fs-extra';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import VaultService from '../VaultService.js';
-import {createTempFile} from './test-utils.js';
+import VaultService from '../VaultService.ts';
+import {createTempFile} from './test-utils.ts';
 
 describe('VaultService', () => {
   let vaultService: VaultService;
