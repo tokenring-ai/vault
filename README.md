@@ -192,8 +192,6 @@ Initializes a new empty vault file.
 
 ## Chat Commands
 
-The vault package provides integrated chat commands for managing credentials within the agent interface:
-
 ### `/vault unlock`
 
 Unlock the vault with password
@@ -305,7 +303,7 @@ Creates a new encrypted vault file. You'll be prompted to set a password.
 ```bash
 vault set API_KEY sk-1234567890
 vault set DB_PASSWORD mySecretPassword
-vault set -f ~/.secrets.vault AWS_KEY abc123
+vault -f ~/.secrets.vault set AWS_KEY abc123
 ```
 
 ### Retrieve Secrets
@@ -341,9 +339,9 @@ Re-encrypts the vault with a new password. Prompts for current and new passwords
 ### Run Commands with Secrets
 
 ```bash
-vault run -- node app.js
-vault run -- bun start
-vault run -- bash -c 'echo $API_KEY'
+vault run node app.js
+vault run bun start
+vault run bash -c 'echo $API_KEY'
 ```
 
 Executes a command with all vault secrets injected as environment variables. Only string values are injected.
@@ -427,13 +425,15 @@ Run a command with vault secrets injected as environment variables.
 - `<command>`: The command to execute
 - `[args...]`: Command arguments
 
-**Options:**
-- `-f, --file <path>`: Specify vault file path (default: `.vault`)
-
 **Example:**
 ```bash
 vault run node app.js
 vault run bash -c 'echo $API_KEY'
+```
+
+**Note:** Use `-f, --file` option before the command to specify vault file:
+```bash
+vault -f ~/.secrets.vault run node app.js
 ```
 
 ## TokenRing Integration
@@ -648,8 +648,8 @@ pkg/vault/
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| `vitest` | `^4.1.0` | Testing framework |
-| `typescript` | `^5.9.3` | TypeScript compiler |
+| `vitest` | `^4.1.1` | Testing framework |
+| `typescript` | `^6.0.2` | TypeScript compiler |
 
 ## Related Components
 

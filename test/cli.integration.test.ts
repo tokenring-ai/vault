@@ -1,7 +1,7 @@
 import {spawn} from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
-import {setTimeout} from 'timers/promises';
+import {setTimeout as delay} from 'timers/promises';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {createTempFile} from './test-utils.js';
 
@@ -45,11 +45,11 @@ describe('Vault CLI Integration', () => {
         // Handle multiple password prompts by splitting by newline
         const passwords = password.split('\n');
         for (const p of passwords) {
-          await setTimeout(100);
+          await delay(100);
           child.stdin.write(p + '\n');
         }
 
-        await setTimeout(100);
+        await delay(100);
         child.stdin.end();
       }
     });
