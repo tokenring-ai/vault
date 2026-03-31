@@ -5,7 +5,7 @@ import VaultService from "../../VaultService.ts";
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
 async function execute({agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
-  const keys = Object.keys(await agent.requireServiceByType(VaultService).unlockVault(agent));
+  const keys = Object.keys(await agent.requireServiceByType(VaultService).unlock());
   return keys.length === 0 ? "Vault is empty" : `Vault credentials:\n${markdownList(keys)}`;
 }
 

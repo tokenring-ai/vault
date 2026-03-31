@@ -183,6 +183,53 @@ describe('VaultService', () => {
     });
   });
 
+  describe('unlocked', () => {
+    it('should return false when vault is locked', () => {
+      expect(vaultService.unlocked).toBe(false);
+    });
+
+    it('should return true when vault is unlocked', async () => {
+      vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');
+      await vaultService.unlockVault(agent);
+      expect(vaultService.unlocked).toBe(true);
+    });
+
+    it('should return false after locking', async () => {
+      vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');
+      await vaultService.unlockVault(agent);
+      await vaultService.lock();
+      expect(vaultService.unlocked).toBe(false);
+    });
+  });
+
+  describe('tryGetItem', () => {
+    it('should return undefined when vault is locked', () => {
+      expect(vaultService.tryGetItem('any-key')).toBeUndefined();
+    });
+
+    it('should return undefined for missing key when vault is unlocked', async () => {
+      vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');
+      await vaultService.unlockVault(agent);
+      expect(vaultService.tryGetItem('missing-key')).toBeUndefined();
+    });
+
+    it('should return value for existing key when vault is unlocked', async () => {
+      vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');
+      await vaultService.unlockVault(agent);
+      await vaultService.setItem('test-key', 'test-value', agent);
+      expect(vaultService.tryGetItem('test-key')).toBe('test-value');
+    });
+
+    it('should return undefined after vault is locked', async () => {
+      vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');
+      await vaultService.unlockVault(agent);
+      await vaultService.setItem('test-key', 'test-value', agent);
+      expect(vaultService.tryGetItem('test-key')).toBe('test-value');
+      await vaultService.lock();
+      expect(vaultService.tryGetItem('test-key')).toBeUndefined();
+    });
+  });
+
   describe('session management', () => {
     it('should cache session password during operation', async () => {
       vi.spyOn(agent, 'askForText').mockResolvedValue('test-password');

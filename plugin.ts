@@ -15,9 +15,16 @@ export default {
   name: packageJSON.name,
   version: packageJSON.version,
   description: packageJSON.description,
-  install(app, config) {
+  async install(app, config) {
     if (config.vault) {
-      app.addServices(new VaultService(config.vault));
+      const vaultService = new VaultService(config.vault);
+      if (process.env.TR_VAULT_PASSWORD) {
+        vaultService.setPassword(process.env.TR_VAULT_PASSWORD);
+        await vaultService.unlock();
+        vaultService.injectEnv();
+      }
+
+      app.addServices(vaultService);
       app.waitForService(AgentCommandService, commandService => {
         commandService.addAgentCommands(agentCommands)
       })

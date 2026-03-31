@@ -1,8 +1,6 @@
-import {Agent} from "@tokenring-ai/agent";
 import {TokenRingService} from "@tokenring-ai/app/types";
-import fs from "fs-extra";
 import type {ParsedVaultConfig} from "./schema.ts";
-import {initVault, readVault, writeVault} from "./vault.ts";
+import {readVault, writeVault} from "./vault.ts";
 
 export default class VaultService implements TokenRingService {
   // Add password caching during session
@@ -12,97 +10,59 @@ export default class VaultService implements TokenRingService {
   description = "A vault service for storing persisted credentials";
 
   private vaultData: Record<string, string> | undefined;
-  private relockTimer: NodeJS.Timeout | undefined;
 
   constructor(readonly options: ParsedVaultConfig) {
   }
 
-  async unlockVault(agent: Agent): Promise<Record<string, string>> {
-    if (this.relockTimer) {
-      clearTimeout(this.relockTimer);
-      this.relockTimer = setTimeout(() => this.lock(), this.options.relockTime);
-    }
-
-    if (this.vaultData) return this.vaultData;
-
-    if (!await fs.pathExists(this.options.vaultFile)) {
-      return await this.initializeVault(agent);
-    }
-
-    if (!this.sessionPassword) {
-      const password = await agent.askForText({
-        masked: true,
-        message: "Enter your password to unlock the vault.",
-        label: "Password:"
-      });
-
-      if (!password) {
-        throw new Error("Password was empty, vault unlock cancelled");
+  injectEnv() {
+    if (!this.vaultData) return;
+    for (const [key, value] of Object.entries(this.vaultData)) {
+      if (key.startsWith('ENV:')) {
+        process.env[key.replace('ENV:', '')] = value;
       }
-
-      this.sessionPassword = password;
     }
+  }
 
-    try {
+  setPassword(password: string) {
+    this.sessionPassword = password;
+  }
+
+  async start() {
+    this.sessionPassword ||= process.env.TR_VAULT_PASSWORD;
+
+    if (this.sessionPassword) {
       this.vaultData = await readVault(this.options.vaultFile, this.sessionPassword);
-      this.scheduleRelock();
-      return this.vaultData;
-    } catch (error) {
-      this.sessionPassword = undefined;
-      throw new Error('Failed to decrypt vault. Invalid password or corrupted vault file.');
     }
   }
 
-  async save(vaultData: Record<string, string>, agent: Agent) {
+  async save(modifications: Record<string, string> = {}) {
     if (!this.sessionPassword) {
-      throw new Error('Vault must be unlocked before saving');
+      throw new Error('No password was set before saving vault');
     }
 
-    await writeVault(this.options.vaultFile, this.sessionPassword, vaultData);
-    this.vaultData = vaultData;
-  }
-
-  private scheduleRelock(): void {
-    this.relockTimer = setTimeout(() => this.lock(), this.options.relockTime);
+    this.vaultData = {...this.vaultData, ...modifications};
+    await writeVault(this.options.vaultFile, this.sessionPassword, this.vaultData);
   }
 
   async lock(): Promise<void> {
     this.vaultData = undefined;
-    this.sessionPassword = undefined;
-    if (this.relockTimer) {
-      clearTimeout(this.relockTimer);
-      this.relockTimer = undefined;
+  }
+
+  async unlock(): Promise<Record<string, string>> {
+    if (!this.sessionPassword) {
+      throw new Error('No password was set before unlocking vault');
     }
+    this.vaultData = await readVault(this.options.vaultFile, this.sessionPassword);
+    return this.vaultData;
   }
 
-  private async initializeVault(agent: Agent): Promise<Record<string, string>> {
-    agent.infoMessage("Vault file does not exist, creating a new empty vault.");
-
-    const password = await agent.askForText({
-      masked: true,
-      message: "Set a password for the new vault.",
-      label: "Password"
-    });
-
-    if (!password) {
-      throw new Error("Password was empty, vault creation cancelled");
-    }
-
-    this.sessionPassword = password;
-    await initVault(this.options.vaultFile, this.sessionPassword);
-    this.vaultData = {};
-    this.scheduleRelock();
-    return {};
+  async getItem(key: string): Promise<string | undefined> {
+    if (!this.vaultData) throw new Error('Vault is uninitialized or locked');
+    return this.vaultData[key];
   }
 
-  async getItem(key: string, agent: Agent): Promise<string | undefined> {
-    const vaultData = await this.unlockVault(agent);
-    return vaultData[key];
-  }
-
-  async setItem(key: string, value: string, agent: Agent): Promise<void> {
-    const vaultData = await this.unlockVault(agent);
-    vaultData[key] = value;
-    await this.save(vaultData, agent);
+  async setItem(key: string, value: string): Promise<void> {
+    if (!this.sessionPassword) throw new Error('Vault password is not set');
+    await this.save({[key]: value});
   }
 }

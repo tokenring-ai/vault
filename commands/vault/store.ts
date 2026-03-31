@@ -9,7 +9,7 @@ const inputSchema = {
 async function execute({positionals: {key}, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
   const value = await agent.askForText({ masked: true, message: `Enter value for "${key}"`, label: "Value" });
   if (!value) return "Store cancelled";
-  await agent.requireServiceByType(VaultService).setItem(key, value, agent);
+  await agent.requireServiceByType(VaultService).setItem(key, value);
   return `Stored credential: ${key}`;
 }
 
