@@ -13,7 +13,7 @@ export default {
 /vault unlock`,
   inputSchema,
   execute: async ({agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
-    await agent.requireServiceByType(VaultService).unlock();
+    await agent.requireServiceByType(VaultService).unlock(agent);
     return "Vault unlocked successfully";
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

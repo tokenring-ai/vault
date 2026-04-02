@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import fs from "fs-extra";
+import {type VaultFileData, VaultFileSchema} from "./schema.ts";
 
 export function deriveKey(password: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
@@ -46,17 +47,25 @@ export function decrypt(encryptedData: string, password: string): string {
   return decrypted;
 }
 
-export async function readVault(vaultFile: string, password: string): Promise<Record<string, string>> {
+export async function readOrInitializeVault(vaultFile: string, password: string): Promise<VaultFileData> {
+  if (! await fs.pathExists(vaultFile)) {
+    await initVault(vaultFile, password);
+  }
+
+  return readVault(vaultFile, password);
+}
+
+export async function readVault(vaultFile: string, password: string): Promise<VaultFileData> {
   if (!await fs.pathExists(vaultFile)) {
     throw new Error('Vault file does not exist');
   }
 
   const encryptedContent = await fs.readFile(vaultFile, 'utf8');
   const decryptedContent = decrypt(encryptedContent, password);
-  return JSON.parse(decryptedContent) as Record<string, string>;
+  return VaultFileSchema.parse(JSON.parse(decryptedContent));
 }
 
-export async function writeVault(vaultFile: string, password: string, data: Record<string, string>): Promise<void> {
+export async function writeVault(vaultFile: string, password: string, data: VaultFileData): Promise<void> {
   const jsonContent = JSON.stringify(data, null, 2);
   const encryptedContent = encrypt(jsonContent, password);
 
@@ -67,5 +76,5 @@ export async function writeVault(vaultFile: string, password: string, data: Reco
 }
 
 export async function initVault(vaultFile: string, password: string): Promise<void> {
-  await writeVault(vaultFile, password, {});
+  await writeVault(vaultFile, password, { vaultVersion: 1, entries: {} });
 }

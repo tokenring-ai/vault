@@ -78,22 +78,26 @@ program
 
 program
   .command('get <key>')
-  .description('Get a secret value')
+  .description('Get a secret value (format: category.key)')
   .action(async (key) => {
     const opts = program.opts();
     const password = await askPassword('Enter vault password:');
     const data = await readVault(opts.file, password);
-    console.log(data[key] ?? '');
+    const [category, ...rest] = key.split('.');
+    const k = rest.join('.');
+    console.log(data.entries[category]?.[k] ?? '');
   });
 
 program
   .command('set <key> <value>')
-  .description('Set a secret value')
+  .description('Set a secret value (format: category.key)')
   .action(async (key, value) => {
     const opts = program.opts();
     const password = await askPassword('Enter vault password:');
     const data = await readVault(opts.file, password);
-    data[key] = value;
+    const [category, ...rest] = key.split('.');
+    const k = rest.join('.');
+    (data.entries[category] ??= {})[k] = value;
     await writeVault(opts.file, password, data);
     console.log(`Set ${key}`);
   });
@@ -105,17 +109,23 @@ program
     const opts = program.opts();
     const password = await askPassword('Enter vault password:');
     const data = await readVault(opts.file, password);
-    console.log(Object.keys(data).join('\n'));
+    for (const [category, entries] of Object.entries(data.entries)) {
+      for (const key of Object.keys(entries)) {
+        console.log(`${category}.${key}`);
+      }
+    }
   });
 
 program
   .command('remove <key>')
-  .description('Remove a secret')
+  .description('Remove a secret (format: category.key)')
   .action(async (key) => {
     const opts = program.opts();
     const password = await askPassword('Enter vault password:');
     const data = await readVault(opts.file, password);
-    delete data[key];
+    const [category, ...rest] = key.split('.');
+    const k = rest.join('.');
+    delete data.entries[category]?.[k];
     await writeVault(opts.file, password, data);
     console.log(`Removed ${key}`);
   });
@@ -148,8 +158,10 @@ program
     const data = await readVault(opts.file, password);
     
     const env = { ...process.env };
-    for (const [key, value] of Object.entries(data)) {
-      env[key] = value;
+    for (const entries of Object.values(data.entries)) {
+      for (const [key, value] of Object.entries(entries)) {
+        env[key] = value;
+      }
     }
     
     const child = spawn(command, args, {

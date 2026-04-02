@@ -8,7 +8,10 @@ const inputSchema = {
 } as const satisfies AgentCommandInputSchema;
 
 async function execute({positionals: { key }, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
-  const value = await agent.requireServiceByType(VaultService).getItem(key);
+  const [category, ...rest] = key.split('.');
+  const k = rest.join('.');
+  if (!k) throw new CommandFailedError(`Key must be in format "category.key"`);
+  const value = await agent.requireServiceByType(VaultService).getItem(category, k, agent);
   if (value === undefined) throw new CommandFailedError(`Credential "${key}" not found in vault`);
   return `${key}: ${value}`;
 }

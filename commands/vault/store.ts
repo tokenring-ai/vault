@@ -3,13 +3,17 @@ import VaultService from "../../VaultService.ts";
 
 const inputSchema = {
   args: {},
-  positionals: [{name: "key", description: "Credential key", required: true}]
+  positionals: [
+    {name: "key", description: "Credential key", required: true},
+    {name: "value", description: "Credential value", required: true}
+  ]
 } as const satisfies AgentCommandInputSchema;
 
-async function execute({positionals: {key}, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
-  const value = await agent.askForText({ masked: true, message: `Enter value for "${key}"`, label: "Value" });
-  if (!value) return "Store cancelled";
-  await agent.requireServiceByType(VaultService).setItem(key, value);
+async function execute({positionals: {key, value}, agent}: AgentCommandInputType<typeof inputSchema>): Promise<string> {
+  const [category, ...rest] = key.split('.');
+  const k = rest.join('.');
+  if (!k) throw new Error(`Key must be in format "category.key"`);
+  await agent.requireServiceByType(VaultService).setItem(category, k, value, agent);
   return `Stored credential: ${key}`;
 }
 
