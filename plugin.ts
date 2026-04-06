@@ -14,9 +14,10 @@ const packageConfigSchema = z.object({
 
 export default {
   name: packageJSON.name,
+  displayName: "Credential Vault",
   version: packageJSON.version,
   description: packageJSON.description,
-  async install(app, config) {
+  async earlyInstall(app, config) {
     if (config.vault) {
       const vaultService = new VaultService(config.vault);
       if (process.env.TR_VAULT_PASSWORD) {

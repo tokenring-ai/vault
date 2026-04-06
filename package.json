@@ -1,7 +1,7 @@
 {
   "name": "@tokenring-ai/vault",
   "version": "0.2.0",
-  "description": "A vault service for storing persisted credentials",
+  "description": "Secure storage service for managing sensitive API keys and persistent credentials.",
   "dependencies": {
     "@tokenring-ai/app": "0.2.0",
     "@tokenring-ai/agent": "0.2.0",
