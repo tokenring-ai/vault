@@ -2,8 +2,8 @@
 import {spawn} from 'child_process';
 import {Command} from 'commander';
 import readline from 'readline';
+import packageJSON from './package.json' with {type: 'json'};
 import {initVault, readVault, writeVault} from './vault.ts';
-import packageJSON from './package.json' with { type: 'json' };
 
 let rlInterface: readline.Interface | undefined;
 
