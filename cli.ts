@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
-import {spawn} from 'child_process';
-import {Command} from 'commander';
-import readline from 'readline';
-import packageJSON from './package.json' with {type: 'json'};
-import {initVault, readVault, writeVault} from './vault.ts';
+import {Command} from "commander";
+import {spawn} from "node:child_process";
+import readline from "node:readline";
+import packageJSON from "./package.json" with {type: "json"};
+import {initVault, readVault, writeVault} from "./vault.ts";
 
 let rlInterface: readline.Interface | undefined;
 
@@ -12,13 +12,13 @@ function getReadlineInterface(): readline.Interface {
     rlInterface = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      terminal: process.stdin.isTTY
+      terminal: process.stdin.isTTY,
     });
   }
   return rlInterface;
 }
 
-async function askPassword(message: string): Promise<string> {
+function askPassword(message: string): Promise<string> {
   const rl = getReadlineInterface();
 
   if (!process.stdin.isTTY) {
@@ -33,81 +33,81 @@ async function askPassword(message: string): Promise<string> {
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(true);
     }
-    process.stdout.write(message + ' ');
-    
-    let password = '';
+    process.stdout.write(message + " ");
+
+    let password = "";
     const onData = (char: Buffer) => {
       const byte = char.toString();
-      
-      if (byte === '\n' || byte === '\r' || byte === '\u0004') {
+
+      if (byte === "\n" || byte === "\r" || byte === "\u0004") {
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(false);
         }
-        process.stdout.write('\n');
-        process.stdin.removeListener('data', onData);
+        process.stdout.write("\n");
+        process.stdin.removeListener("data", onData);
         resolve(password);
-      } else if (byte === '\u0003') {
+      } else if (byte === "\u0003") {
         process.exit(1);
-      } else if (byte === '\u007f') {
+      } else if (byte === "\u007f") {
         password = password.slice(0, -1);
       } else {
         password += byte;
       }
     };
-    process.stdin.on('data', onData);
+    process.stdin.on("data", onData);
   });
 }
 
 const program = new Command();
 
 program
-  .name('vault')
+  .name("vault")
   .version(packageJSON.version)
-  .description('Encrypted vault for managing secrets')
-  .option('-f, --file <path>', 'Vault file path', '.vault');
+  .description("Encrypted vault for managing secrets")
+  .option("-f, --file <path>", "Vault file path", ".vault");
 
 program
-  .command('init')
-  .description('Initialize a new vault')
+  .command("init")
+  .description("Initialize a new vault")
   .action(async () => {
     const opts = program.opts();
-    const password = await askPassword('Set a password for the new vault:');
+    const password = await askPassword("Set a password for the new vault:");
     await initVault(opts.file, password);
     console.log(`Vault initialized: ${opts.file}`);
   });
 
 program
-  .command('get <key>')
-  .description('Get a secret value (format: category.key)')
+  .command("get <key>")
+  .description("Get a secret value (format: category.key)")
   .action(async (key) => {
     const opts = program.opts();
-    const password = await askPassword('Enter vault password:');
+    const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split('.');
-    const k = rest.join('.');
-    console.log(data.entries[category]?.[k] ?? '');
+    const [category, ...rest] = key.split(".");
+    const k = rest.join(".");
+    console.log(data.entries[category]?.[k] ?? "");
   });
 
 program
-  .command('set <key> <value>')
-  .description('Set a secret value (format: category.key)')
+  .command("set <key> <value>")
+  .description("Set a secret value (format: category.key)")
   .action(async (key, value) => {
     const opts = program.opts();
-    const password = await askPassword('Enter vault password:');
+    const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split('.');
-    const k = rest.join('.');
+    const [category, ...rest] = key.split(".");
+    const k = rest.join(".");
     (data.entries[category] ??= {})[k] = value;
     await writeVault(opts.file, password, data);
     console.log(`Set ${key}`);
   });
 
 program
-  .command('list')
-  .description('List all secret keys')
+  .command("list")
+  .description("List all secret keys")
   .action(async () => {
     const opts = program.opts();
-    const password = await askPassword('Enter vault password:');
+    const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
     for (const [category, entries] of Object.entries(data.entries)) {
       for (const key of Object.keys(entries)) {
@@ -117,30 +117,30 @@ program
   });
 
 program
-  .command('remove <key>')
-  .description('Remove a secret (format: category.key)')
+  .command("remove <key>")
+  .description("Remove a secret (format: category.key)")
   .action(async (key) => {
     const opts = program.opts();
-    const password = await askPassword('Enter vault password:');
+    const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split('.');
-    const k = rest.join('.');
+    const [category, ...rest] = key.split(".");
+    const k = rest.join(".");
     delete data.entries[category]?.[k];
     await writeVault(opts.file, password, data);
     console.log(`Removed ${key}`);
   });
 
 program
-  .command('change-password')
-  .description('Change vault password')
+  .command("change-password")
+  .description("Change vault password")
   .action(async () => {
     try {
       const opts = program.opts();
-      const oldPassword = await askPassword('Enter current vault password:');
+      const oldPassword = await askPassword("Enter current vault password:");
       const data = await readVault(opts.file, oldPassword);
-      const newPassword = await askPassword('Enter new vault password:');
+      const newPassword = await askPassword("Enter new vault password:");
       await writeVault(opts.file, newPassword, data);
-      console.log('Password changed successfully');
+      console.log("Password changed successfully");
     } catch (e: any) {
       console.error(`Error: ${e.message}`);
       process.exit(1);
@@ -148,29 +148,29 @@ program
   });
 
 program
-  .command('run')
-  .description('Run a command with vault secrets as environment variables')
-  .argument('<command>', 'Command to execute')
-  .argument('[args...]', 'Command arguments')
+  .command("run")
+  .description("Run a command with vault secrets as environment variables")
+  .argument("<command>", "Command to execute")
+  .argument("[args...]", "Command arguments")
   .action(async (command, args) => {
     const opts = program.opts();
-    const password = await askPassword('Enter vault password:');
+    const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    
-    const env = { ...process.env };
+
+    const env = {...process.env};
     for (const entries of Object.values(data.entries)) {
       for (const [key, value] of Object.entries(entries)) {
         env[key] = value;
       }
     }
-    
+
     const child = spawn(command, args, {
       env,
-      stdio: 'inherit',
-      shell: true
+      stdio: "inherit",
+      shell: true,
     });
-    
-    child.on('exit', (code) => {
+
+    child.on("exit", (code) => {
       process.exit(code ?? 0);
     });
   });

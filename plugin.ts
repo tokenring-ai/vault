@@ -1,5 +1,5 @@
 import {AgentCommandService} from "@tokenring-ai/agent";
-import {TokenRingPlugin} from "@tokenring-ai/app";
+import type {TokenRingPlugin} from "@tokenring-ai/app";
 import {RpcService} from "@tokenring-ai/rpc";
 import {z} from "zod";
 import agentCommands from "./commands.ts";
@@ -9,7 +9,7 @@ import vaultRPC from "./rpc/vault.ts";
 import {VaultConfigSchema} from "./schema.ts";
 
 const packageConfigSchema = z.object({
-  vault: VaultConfigSchema.optional()
+  vault: VaultConfigSchema.optional(),
 });
 
 export default {
@@ -27,13 +27,13 @@ export default {
       }
 
       app.addServices(vaultService);
-      app.waitForService(AgentCommandService, commandService => {
-        commandService.addAgentCommands(agentCommands)
+      app.waitForService(AgentCommandService, (commandService) => {
+        commandService.addAgentCommands(agentCommands);
       });
-      app.waitForService(RpcService, rpcService => {
+      app.waitForService(RpcService, (rpcService) => {
         rpcService.registerEndpoint(vaultRPC);
       });
     }
   },
-  config: packageConfigSchema
+  config: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

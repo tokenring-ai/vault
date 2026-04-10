@@ -1,4 +1,4 @@
-import {RPCSchema} from "@tokenring-ai/rpc/types";
+import type {RPCSchema} from "@tokenring-ai/rpc/types";
 import {z} from "zod";
 import {VaultEntryDeleteSchema, VaultEntryUpdateSchema} from "../schema.ts";
 
@@ -14,7 +14,7 @@ export default {
     setItems: {
       type: "mutation",
       input: z.object({
-        updates: z.array(VaultEntryUpdateSchema)
+        updates: z.array(VaultEntryUpdateSchema),
       }),
       result: z.object({
         success: z.boolean(),
@@ -24,7 +24,7 @@ export default {
     deleteItems: {
       type: "mutation",
       input: z.object({
-        updates: z.array(VaultEntryDeleteSchema)
+        updates: z.array(VaultEntryDeleteSchema),
       }),
       result: z.object({
         success: z.boolean(),
