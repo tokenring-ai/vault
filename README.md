@@ -60,6 +60,7 @@ Unlocks the vault by prompting for the password (if not already unlocked), decry
 - **Throws:** Error if password is empty or decryption fails
 
 **Example:**
+
 ```typescript
 const vaultService = agent.getService<VaultService>('VaultService');
 const data = await vaultService.unlockVault(agent);
@@ -73,6 +74,7 @@ Locks the vault, clearing all cached data and session password. The vault must b
 - **Returns:** `Promise<void>`
 
 **Example:**
+
 ```typescript
 await vaultService.lock();
 ```
@@ -87,6 +89,7 @@ Writes the updated vault data to the vault file, re-encrypting it with the curre
 - **Throws:** Error if vault is not unlocked (no session password)
 
 **Example:**
+
 ```typescript
 const data = await vaultService.unlockVault(agent);
 data['NEW_KEY'] = 'new_value';
@@ -103,6 +106,7 @@ Retrieves a secret value by key. Automatically unlocks the vault if needed.
 - **Returns:** `Promise<string | undefined>` - The secret value or undefined if not found
 
 **Example:**
+
 ```typescript
 const apiKey = await vaultService.getItem('API_KEY', agent);
 if (apiKey) {
@@ -121,6 +125,7 @@ Updates the vault with a new key-value pair, saving the changes. Automatically u
 - **Returns:** `Promise<void>`
 
 **Example:**
+
 ```typescript
 await vaultService.setItem('API_KEY', 'sk-1234567890', agent);
 ```
@@ -197,6 +202,7 @@ Initializes a new empty vault file.
 Unlock the vault with password
 
 **Example:**
+
 ```
 /vault unlock
 ```
@@ -206,6 +212,7 @@ Unlock the vault with password
 Lock the vault
 
 **Example:**
+
 ```
 /vault lock
 ```
@@ -215,6 +222,7 @@ Lock the vault
 List all credential keys in the vault
 
 **Example:**
+
 ```
 /vault list
 ```
@@ -222,9 +230,11 @@ List all credential keys in the vault
 ### `/vault store <key>`
 
 Store a credential in the vault
+
 - Prompts for the credential value securely
 
 **Example:**
+
 ```
 /vault store api_key
 ```
@@ -234,11 +244,13 @@ Store a credential in the vault
 Retrieve and display a credential from the vault
 
 **Example:**
+
 ```
 /vault get api_key
 ```
 
 **Complete usage example:**
+
 ```
 /vault unlock
 /vault list
@@ -353,9 +365,11 @@ Executes a command with all vault secrets injected as environment variables. Onl
 Initialize a new encrypted vault file.
 
 **Options:**
+
 - `-f, --file <path>`: Specify vault file path (default: `.vault`)
 
 **Example:**
+
 ```bash
 vault init -f ~/.my-vault
 ```
@@ -365,9 +379,11 @@ vault init -f ~/.my-vault
 Retrieve a secret value by key.
 
 **Arguments:**
+
 - `<key>`: The secret key to retrieve
 
 **Example:**
+
 ```bash
 vault get API_KEY
 ```
@@ -377,10 +393,12 @@ vault get API_KEY
 Store a secret value.
 
 **Arguments:**
+
 - `<key>`: The secret key
 - `<value>`: The secret value
 
 **Example:**
+
 ```bash
 vault set API_KEY sk-1234567890
 ```
@@ -390,6 +408,7 @@ vault set API_KEY sk-1234567890
 List all secret keys (not values) stored in the vault.
 
 **Example:**
+
 ```bash
 vault list
 ```
@@ -399,9 +418,11 @@ vault list
 Remove a secret by key.
 
 **Arguments:**
+
 - `<key>`: The secret key to remove
 
 **Example:**
+
 ```bash
 vault remove OLD_TOKEN
 ```
@@ -413,6 +434,7 @@ Change the vault encryption password.
 Prompts for current password and new password, then re-encrypts the vault.
 
 **Example:**
+
 ```bash
 vault change-password
 ```
@@ -422,16 +444,19 @@ vault change-password
 Run a command with vault secrets injected as environment variables.
 
 **Arguments:**
+
 - `<command>`: The command to execute
 - `[args...]`: Command arguments
 
 **Example:**
+
 ```bash
 vault run node app.js
 vault run bash -c 'echo $API_KEY'
 ```
 
 **Note:** Use `-f, --file` option before the command to specify vault file:
+
 ```bash
 vault -f ~/.secrets.vault run node app.js
 ```
@@ -574,6 +599,7 @@ The vault automatically locks after the configured `relockTime` (default: 5 minu
 ### Session Password Caching
 
 Once unlocked, the password is cached in memory for the duration of the session. This allows multiple operations without re-prompting for the password. The password is cleared when:
+
 - `lock()` is called explicitly
 - The automatic relock timer expires
 - Decryption fails (invalid password attempt)

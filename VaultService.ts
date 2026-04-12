@@ -1,7 +1,7 @@
 import type Agent from "@tokenring-ai/agent/Agent";
 import type {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
-import type {ParsedVaultConfig, VaultEntryUpdate, VaultFileData,} from "./schema.ts";
+import type {ParsedVaultConfig, VaultEntryUpdate, VaultFileData} from "./schema.ts";
 import {readOrInitializeVault, writeVault} from "./vault.ts";
 
 export default class VaultService implements TokenRingService {
