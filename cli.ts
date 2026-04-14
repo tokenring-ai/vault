@@ -175,8 +175,8 @@ program
     });
   });
 
-program.parseAsync(process.argv).then(() => {
-  if (rlInterface) {
-    rlInterface.close();
-  }
-});
+await program.parseAsync(process.argv);
+
+if (rlInterface) {
+  rlInterface.close();
+}

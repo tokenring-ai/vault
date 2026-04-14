@@ -12,10 +12,8 @@ export default {
 
 /vault lock`,
   inputSchema,
-  execute: async ({
-                    agent,
-                  }: AgentCommandInputType<typeof inputSchema>): Promise<string> => {
-    await agent.requireServiceByType(VaultService).lock();
+  execute({agent}: AgentCommandInputType<typeof inputSchema>) {
+    agent.requireServiceByType(VaultService).lock();
     return "Vault locked";
-  },
+  }
 } satisfies TokenRingAgentCommand<typeof inputSchema>;
