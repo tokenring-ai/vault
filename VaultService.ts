@@ -1,6 +1,7 @@
 import type Agent from "@tokenring-ai/agent/Agent";
 import type {TokenRingService} from "@tokenring-ai/app/types";
 import fs from "fs-extra";
+import type {z} from "zod";
 import type {ParsedVaultConfig, VaultEntryUpdate, VaultFileData} from "./schema.ts";
 import {readOrInitializeVault, writeVault} from "./vault.ts";
 
@@ -45,7 +46,7 @@ export default class VaultService implements TokenRingService {
   }
 
   async save(modifications: VaultEntryUpdate[] = []) {
-    await this.unlock();
+    if (! this.sessionPassword) throw new Error("No password was set before saving vault");
 
     this.vaultData ??= {
       vaultVersion: 1,
@@ -85,32 +86,31 @@ export default class VaultService implements TokenRingService {
     return this.vaultData;
   }
 
-  async getItem(
+  requireItem(
     category: string,
     key: string,
-    agent?: Agent,
-  ): Promise<string | undefined> {
-    const data = await this.unlock(agent);
-    return data.entries[category]?.[key];
+  ): string {
+    if (! this.vaultData) throw new Error("Vault is uninitialized or locked");
+    const data = this.vaultData;
+    if (! data.entries[category]) throw new Error(`Category ${category} does not exist in vault`);
+    if (! data.entries[category][key]) throw new Error(`Item ${key} does not exist in category ${category} in vault`);
+    return data.entries[category][key];
   }
 
-  async getJsonItem<T>(
+  requireJsonItem<T>(
     category: string,
     key: string,
-    agent?: Agent,
-  ): Promise<T | undefined> {
-    const value = await this.getItem(category, key, agent);
-    if (value === undefined) return undefined;
-    return JSON.parse(value) as T;
+    schema: z.ZodType<T>,
+  ): T {
+    const value = this.requireItem(category, key);
+    return schema.parse(JSON.parse(value));
   }
 
   async setItem(
     category: string,
     key: string,
     value: string,
-    agent?: Agent,
   ): Promise<void> {
-    await this.unlock(agent);
     await this.save([{category, key, value}]);
   }
 
@@ -118,9 +118,8 @@ export default class VaultService implements TokenRingService {
     category: string,
     key: string,
     value: unknown,
-    agent?: Agent,
   ): Promise<void> {
-    await this.setItem(category, key, JSON.stringify(value), agent);
+    await this.setItem(category, key, JSON.stringify(value));
   }
 
   async deleteItem(

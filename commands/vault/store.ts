@@ -18,7 +18,7 @@ async function execute({
   if (!k) throw new Error(`Key must be in format "category.key"`);
   await agent
     .requireServiceByType(VaultService)
-    .setItem(category, k, value, agent);
+    .setItem(category, k, value);
   return `Stored credential: ${key}`;
 }
 
