@@ -1,6 +1,6 @@
-import fs from "fs-extra";
 import crypto from "node:crypto";
-import {type VaultFileData, VaultFileSchema} from "./schema.ts";
+import fs from "fs-extra";
+import { type VaultFileData, VaultFileSchema } from "./schema.ts";
 
 export function deriveKey(password: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(password, salt, 100000, 32, "sha256");
@@ -18,12 +18,7 @@ export function encrypt(data: string, password: string): string {
 
   const authTag = cipher.getAuthTag();
 
-  const combined = Buffer.concat([
-    salt,
-    iv,
-    authTag,
-    Buffer.from(encrypted, "hex"),
-  ]);
+  const combined = Buffer.concat([salt, iv, authTag, Buffer.from(encrypted, "hex")]);
 
   return combined.toString("base64");
 }
@@ -47,10 +42,7 @@ export function decrypt(encryptedData: string, password: string): string {
   return decrypted;
 }
 
-export async function readOrInitializeVault(
-  vaultFile: string,
-  password: string,
-): Promise<VaultFileData> {
+export async function readOrInitializeVault(vaultFile: string, password: string): Promise<VaultFileData> {
   if (!(await fs.pathExists(vaultFile))) {
     await initVault(vaultFile, password);
   }
@@ -58,10 +50,7 @@ export async function readOrInitializeVault(
   return readVault(vaultFile, password);
 }
 
-export async function readVault(
-  vaultFile: string,
-  password: string,
-): Promise<VaultFileData> {
+export async function readVault(vaultFile: string, password: string): Promise<VaultFileData> {
   if (!(await fs.pathExists(vaultFile))) {
     throw new Error("Vault file does not exist");
   }
@@ -71,11 +60,7 @@ export async function readVault(
   return VaultFileSchema.parse(JSON.parse(decryptedContent));
 }
 
-export async function writeVault(
-  vaultFile: string,
-  password: string,
-  data: VaultFileData,
-): Promise<void> {
+export async function writeVault(vaultFile: string, password: string, data: VaultFileData): Promise<void> {
   const jsonContent = JSON.stringify(data, null, 2);
   const encryptedContent = encrypt(jsonContent, password);
 
@@ -85,9 +70,6 @@ export async function writeVault(
   });
 }
 
-export async function initVault(
-  vaultFile: string,
-  password: string,
-): Promise<void> {
-  await writeVault(vaultFile, password, {vaultVersion: 1, entries: {}});
+export async function initVault(vaultFile: string, password: string): Promise<void> {
+  await writeVault(vaultFile, password, { vaultVersion: 1, entries: {} });
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
-import {Command} from "commander";
-import {spawn} from "node:child_process";
+import { spawn } from "node:child_process";
 import readline from "node:readline";
-import packageJSON from "./package.json" with {type: "json"};
-import {initVault, readVault, writeVault} from "./vault.ts";
+import { Command } from "commander";
+import packageJSON from "./package.json" with { type: "json" };
+import { initVault, readVault, writeVault } from "./vault.ts";
 
 let rlInterface: readline.Interface | undefined;
 
@@ -22,14 +22,14 @@ function askPassword(message: string): Promise<string> {
   const rl = getReadlineInterface();
 
   if (!process.stdin.isTTY) {
-    return new Promise((resolve) => {
-      rl.question(message, (answer) => {
+    return new Promise(resolve => {
+      rl.question(message, answer => {
         resolve(answer.trim());
       });
     });
   }
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(true);
     }
@@ -60,11 +60,7 @@ function askPassword(message: string): Promise<string> {
 
 const program = new Command();
 
-program
-  .name("vault")
-  .version(packageJSON.version)
-  .description("Encrypted vault for managing secrets")
-  .option("-f, --file <path>", "Vault file path", ".vault");
+program.name("vault").version(packageJSON.version).description("Encrypted vault for managing secrets").option("-f, --file <path>", "Vault file path", ".vault");
 
 program
   .command("init")
@@ -79,7 +75,7 @@ program
 program
   .command("get <key>")
   .description("Get a secret value (format: category.key)")
-  .action(async (key) => {
+  .action(async key => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
@@ -119,7 +115,7 @@ program
 program
   .command("remove <key>")
   .description("Remove a secret (format: category.key)")
-  .action(async (key) => {
+  .action(async key => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
@@ -157,7 +153,7 @@ program
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
 
-    const env = {...process.env};
+    const env = { ...process.env };
     for (const entries of Object.values(data.entries)) {
       for (const [key, value] of Object.entries(entries)) {
         env[key] = value;
@@ -170,7 +166,7 @@ program
       shell: true,
     });
 
-    child.on("exit", (code) => {
+    child.on("exit", code => {
       process.exit(code ?? 0);
     });
   });

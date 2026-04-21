@@ -1,8 +1,8 @@
-import {z} from "zod";
+import { z } from "zod";
 
 export const VaultConfigSchema = z.object({
   vaultFile: z.string().min(1),
-  relockTime: z.number().optional(),
+  relockTime: z.number().exactOptional(),
 });
 export type ParsedVaultConfig = z.output<typeof VaultConfigSchema>;
 

@@ -1,6 +1,6 @@
 import type TokenRingApp from "@tokenring-ai/app";
-import {createRPCEndpoint} from "@tokenring-ai/rpc/createRPCEndpoint";
-import {VaultService} from "../index.ts";
+import { createRPCEndpoint } from "@tokenring-ai/rpc/createRPCEndpoint";
+import { VaultService } from "../index.ts";
 import VaultRpcSchema from "./schema.ts";
 
 export default createRPCEndpoint(VaultRpcSchema, {
@@ -19,13 +19,13 @@ export default createRPCEndpoint(VaultRpcSchema, {
   async setItems(args, app: TokenRingApp) {
     const vault = app.requireService(VaultService);
     await vault.save(args.updates);
-    return {success: true, message: `Saved ${args.updates.length} item(s)`};
+    return { success: true, message: `Saved ${args.updates.length} item(s)` };
   },
 
   async deleteItems(args, app: TokenRingApp) {
     const vault = app.requireService(VaultService);
     try {
-      for (const {category, key} of args.updates) {
+      for (const { category, key } of args.updates) {
         await vault.deleteItem(category, key);
       }
       return {
@@ -33,7 +33,7 @@ export default createRPCEndpoint(VaultRpcSchema, {
         message: `Deleted ${args.updates.length} item(s)`,
       };
     } catch (e: any) {
-      return {success: false, message: e.message};
+      return { success: false, message: e.message };
     }
   },
 });

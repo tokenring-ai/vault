@@ -1,4 +1,4 @@
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
 import VaultService from "../../VaultService.ts";
 
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
@@ -12,8 +12,8 @@ export default {
 
 /vault lock`,
   inputSchema,
-  execute({agent}: AgentCommandInputType<typeof inputSchema>) {
+  execute({ agent }: AgentCommandInputType<typeof inputSchema>) {
     agent.requireServiceByType(VaultService).lock();
     return "Vault locked";
-  }
+  },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;

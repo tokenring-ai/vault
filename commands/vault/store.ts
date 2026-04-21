@@ -1,24 +1,19 @@
-import type {AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand} from "@tokenring-ai/agent/types";
+import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
 import VaultService from "../../VaultService.ts";
 
 const inputSchema = {
   args: {},
   positionals: [
-    {name: "key", description: "Credential key", required: true},
-    {name: "value", description: "Credential value", required: true},
+    { name: "key", description: "Credential key", required: true },
+    { name: "value", description: "Credential value", required: true },
   ],
 } as const satisfies AgentCommandInputSchema;
 
-async function execute({
-                         positionals: {key, value},
-                         agent,
-                       }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
+async function execute({ positionals: { key, value }, agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
   const [category, ...rest] = key.split(".");
   const k = rest.join(".");
   if (!k) throw new Error(`Key must be in format "category.key"`);
-  await agent
-    .requireServiceByType(VaultService)
-    .setItem(category, k, value);
+  await agent.requireServiceByType(VaultService).setItem(category, k, value);
   return `Stored credential: ${key}`;
 }
 

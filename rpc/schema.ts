@@ -1,6 +1,6 @@
-import type {RPCSchema} from "@tokenring-ai/rpc/types";
-import {z} from "zod";
-import {VaultEntryDeleteSchema, VaultEntryUpdateSchema} from "../schema.ts";
+import type { RPCSchema } from "@tokenring-ai/rpc/types";
+import { z } from "zod";
+import { VaultEntryDeleteSchema, VaultEntryUpdateSchema } from "../schema.ts";
 
 export default {
   name: "Vault RPC",

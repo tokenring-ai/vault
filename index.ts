@@ -1,1 +1,1 @@
-export {default as VaultService} from "./VaultService.ts";
+export { default as VaultService } from "./VaultService.ts";
