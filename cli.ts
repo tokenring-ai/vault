@@ -75,7 +75,7 @@ program
 program
   .command("get <key>")
   .description("Get a secret value (format: category.key)")
-  .action(async key => {
+  .action(async (key: string) => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
@@ -87,7 +87,7 @@ program
 program
   .command("set <key> <value>")
   .description("Set a secret value (format: category.key)")
-  .action(async (key, value) => {
+  .action(async (key: string, value: string) => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
@@ -115,7 +115,7 @@ program
 program
   .command("remove <key>")
   .description("Remove a secret (format: category.key)")
-  .action(async key => {
+  .action(async (key: string) => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
@@ -148,7 +148,7 @@ program
   .description("Run a command with vault secrets as environment variables")
   .argument("<command>", "Command to execute")
   .argument("[args...]", "Command arguments")
-  .action(async (command, args) => {
+  .action(async (command: string, args: string[]) => {
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);

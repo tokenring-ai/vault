@@ -1,3 +1,4 @@
+import errorAsString from "@tokenring-ai/utility/error/errorAsString";
 import crypto from "node:crypto";
 import fs from "fs-extra";
 import { type VaultFileData, VaultFileSchema } from "./schema.ts";
@@ -56,8 +57,12 @@ export async function readVault(vaultFile: string, password: string): Promise<Va
   }
 
   const encryptedContent = await fs.readFile(vaultFile, "utf8");
-  const decryptedContent = decrypt(encryptedContent, password);
-  return VaultFileSchema.parse(JSON.parse(decryptedContent));
+  try {
+    const decryptedContent = decrypt(encryptedContent, password);
+    return VaultFileSchema.parse(JSON.parse(decryptedContent));
+  } catch (error) {
+    throw new Error(`Encountered an error while decrypting vault file ${vaultFile}, did you provide the right vault password?\n\n${errorAsString(error)}`);
+  }
 }
 
 export async function writeVault(vaultFile: string, password: string, data: VaultFileData): Promise<void> {
