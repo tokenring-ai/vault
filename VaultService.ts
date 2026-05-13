@@ -6,12 +6,10 @@ import type { ParsedVaultConfig, VaultEntryUpdate, VaultFileData } from "./schem
 import { readOrInitializeVault, writeVault } from "./vault.ts";
 
 export default class VaultService implements TokenRingService {
-  // Add password caching during session
-  private sessionPassword: string | undefined;
-
   readonly name = "VaultService";
   description = "A vault service for storing persisted credentials";
-
+  // Add password caching during session
+  private sessionPassword: string | undefined;
   private vaultData: VaultFileData | undefined;
 
   constructor(readonly options: ParsedVaultConfig) {}

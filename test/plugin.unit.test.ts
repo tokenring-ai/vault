@@ -1,14 +1,15 @@
 import TokenRingApp from "@tokenring-ai/app";
 import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import plugin from '../plugin.ts';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import plugin from "../plugin.ts";
 
-describe('Vault Plugin', () => {
+describe("Vault Plugin", () => {
   let mockApp: TokenRingApp;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {
+    });
     mockApp = createTestingApp();
   });
 
@@ -16,22 +17,22 @@ describe('Vault Plugin', () => {
     vi.clearAllMocks();
   });
 
-  describe('plugin metadata', () => {
-    it('should have correct plugin properties', () => {
-      expect(plugin.name).toBe('@tokenring-ai/vault');
-      expect(plugin.version).toBe('0.2.0');
-      expect(plugin.description).toBe('A vault service for storing persisted credentials');
+  describe("plugin metadata", () => {
+    it("should have correct plugin properties", () => {
+      expect(plugin.name).toBe("@tokenring-ai/vault");
+      expect(plugin.version).toBe("0.2.0");
+      expect(plugin.description).toBe("A vault service for storing persisted credentials");
     });
 
-    it('should be a valid TokenRingPlugin', () => {
-      expect(typeof plugin.install).toBe('function');
+    it("should be a valid TokenRingPlugin", () => {
+      expect(typeof plugin.install).toBe("function");
     });
   });
 
-  describe('install', () => {
-    it('should not install without config when no vault config provided', () => {
-      vi.spyOn(mockApp, 'addServices');
-      vi.spyOn(mockApp, 'waitForService');
+  describe("install", () => {
+    it("should not install without config when no vault config provided", () => {
+      vi.spyOn(mockApp, "addServices");
+      vi.spyOn(mockApp, "waitForService");
 
       plugin.install(mockApp, {});
 
@@ -39,16 +40,17 @@ describe('Vault Plugin', () => {
       expect(mockApp.waitForService).not.toHaveBeenCalled();
     });
 
-    it('should install with config when vault config provided', () => {
-      const mockAddServices = vi.spyOn(mockApp, 'addServices');
-      const mockWaitForService = vi.spyOn(mockApp, 'waitForService');
-      
-      plugin.install(mockApp, { vault: {
-          vaultFile: '/path/to/vault',
+    it("should install with config when vault config provided", () => {
+      const mockAddServices = vi.spyOn(mockApp, "addServices");
+      const mockWaitForService = vi.spyOn(mockApp, "waitForService");
+
+      plugin.install(mockApp, {
+        vault: {
+          vaultFile: "/path/to/vault",
           relockTime: 300000
         }
       });
-      
+
       expect(mockAddServices).toHaveBeenCalled();
       expect(mockWaitForService).toHaveBeenCalled();
     });

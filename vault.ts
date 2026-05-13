@@ -1,5 +1,5 @@
-import errorAsString from "@tokenring-ai/utility/error/errorAsString";
 import crypto from "node:crypto";
+import errorAsString from "@tokenring-ai/utility/error/errorAsString";
 import fs from "fs-extra";
 import { type VaultFileData, VaultFileSchema } from "./schema.ts";
 

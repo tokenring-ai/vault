@@ -1,14 +1,14 @@
 import { AgentCommandService } from "@tokenring-ai/agent";
 import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
+import { secrets } from "bun";
+import fs from "fs";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
 import { VaultService } from "./index.ts";
 import packageJSON from "./package.json";
 import vaultRPC from "./rpc/vault.ts";
 import { VaultConfigSchema } from "./schema.ts";
-import { secrets } from "bun";
-import fs from "fs";
 
 const packageConfigSchema = z.object({
   vault: VaultConfigSchema.exactOptional(),
@@ -31,17 +31,21 @@ export default {
         });
       }
 
-      if (! vaultPassword) {
+      if (!vaultPassword) {
         const exists = fs.existsSync(config.vault.vaultFile);
         if (exists) {
-          vaultPassword = prompt("Please enter your TokenRing vault password to unlock your vault, or press enter to not use your vault for this session.\nPassword:")
+          vaultPassword = prompt(
+            "Please enter your TokenRing vault password to unlock your vault, or press enter to not use your vault for this session.\nPassword:",
+          );
         } else {
-          vaultPassword = prompt(`
+          vaultPassword = prompt(
+            `
 You have enabled the TokenRing vault, which stores session tokens and API keys in an AES-256 encrypted file at ${config.vault.vaultFile}.
 To use the vault, you will need to create a password, which you will need to be entered at startup, or it can be provided via the TR_VAULT_PASSWORD environment variable.
 This password will be used to encrypt and decrypt the vault file.
 
-Enter a password to use:`.trim());
+Enter a password to use:`.trim(),
+          );
 
           const confirmPassword = prompt("Confirm your new password:");
           if (confirmPassword !== vaultPassword) {
