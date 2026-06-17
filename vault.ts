@@ -1,6 +1,6 @@
-import crypto from "node:crypto";
 import errorAsString from "@tokenring-ai/utility/error/errorAsString";
 import fs from "fs-extra";
+import crypto from "node:crypto";
 import { type VaultFileData, VaultFileSchema } from "./schema.ts";
 
 export function deriveKey(password: string, salt: Buffer): Buffer {

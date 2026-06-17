@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
+import { Command } from "commander";
 import { spawn } from "node:child_process";
 import readline from "node:readline";
-import { Command } from "commander";
 import packageJSON from "./package.json" with { type: "json" };
 import { initVault, readVault, writeVault } from "./vault.ts";
 

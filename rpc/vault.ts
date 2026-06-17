@@ -32,8 +32,8 @@ export default createRPCEndpoint(VaultRpcSchema, {
         success: true,
         message: `Deleted ${args.updates.length} item(s)`,
       };
-    } catch (e: any) {
-      return { success: false, message: e.message };
+    } catch (e: unknown) {
+      return { success: false, message: Error.isError(e) ? e.message : String(e) };
     }
   },
 });
