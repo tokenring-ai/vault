@@ -1,5 +1,5 @@
 import TokenRingApp from "@tokenring-ai/app";
-import createTestingApp from "@tokenring-ai/app/test/createTestingApp";
+import createTestingApp from "@tokenring-ai/app/test/createTestingApp.test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "../plugin.ts";
 
