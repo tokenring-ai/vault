@@ -9,7 +9,12 @@ export default {
     listEntries: {
       type: "query",
       input: z.object({}),
-      result: z.record(z.string(), z.string()),
+      result: z.record(z.string(), z.array(z.string())),
+    },
+    streamEntries: {
+      type: "stream",
+      input: z.object({}),
+      result: z.record(z.string(), z.array(z.string())),
     },
     setItems: {
       type: "mutation",
