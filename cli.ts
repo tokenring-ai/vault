@@ -30,9 +30,7 @@ function askPassword(message: string): Promise<string> {
   }
 
   return new Promise(resolve => {
-    if (process.stdin.setRawMode) {
-      process.stdin.setRawMode(true);
-    }
+    process.stdin.setRawMode(true);
     process.stdout.write(message + " ");
 
     let password = "";
@@ -40,9 +38,7 @@ function askPassword(message: string): Promise<string> {
       const byte = char.toString();
 
       if (byte === "\n" || byte === "\r" || byte === "\u0004") {
-        if (process.stdin.setRawMode) {
-          process.stdin.setRawMode(false);
-        }
+        process.stdin.setRawMode(false);
         process.stdout.write("\n");
         process.stdin.removeListener("data", onData);
         resolve(password);
@@ -81,7 +77,7 @@ program
     const data = await readVault(opts.file, password);
     const [category, ...rest] = key.split(".");
     const k = rest.join(".");
-    console.log(data.entries[category]?.[k] ?? "");
+    console.log(data.entries[category!]?.[k] ?? "");
   });
 
 program
@@ -91,7 +87,7 @@ program
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split(".");
+    const [category, ...rest] = key.split(".") as [string];
     const k = rest.join(".");
     (data.entries[category] ??= {})[k] = value;
     await writeVault(opts.file, password, data);
@@ -119,7 +115,7 @@ program
     const opts = program.opts();
     const password = await askPassword("Enter vault password:");
     const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split(".");
+    const [category, ...rest] = key.split(".") as [string];
     const k = rest.join(".");
     delete data.entries[category]?.[k];
     await writeVault(opts.file, password, data);

@@ -7,11 +7,7 @@ import VaultRpcSchema from "./schema.ts";
 async function projectVaultEntries(app: TokenRingApp) {
   const vault = app.requireService(VaultService);
   const data = await vault.unlock();
-  return Object.fromEntries(
-    Object
-      .entries(data.entries)
-      .map(([category, items]) => [category, Object.keys(items)])
-  );
+  return Object.fromEntries(Object.entries(data.entries).map(([category, items]) => [category, Object.keys(items)]));
 }
 
 const streamEntries = createPollingQueryStream({
