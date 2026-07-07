@@ -18,7 +18,7 @@ const streamEntries = createPollingQueryStream({
 export default createRPCEndpoint(VaultRpcSchema, {
   async listEntries(_args, app: TokenRingApp) {
     const vault = app.requireService(VaultService);
-    const data = await vault.unlock();
+    await vault.unlock();
     return projectVaultEntries(app);
   },
 
