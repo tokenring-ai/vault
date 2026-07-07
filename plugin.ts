@@ -1,8 +1,8 @@
+import fs from "node:fs";
 import { AgentCommandService } from "@tokenring-ai/agent";
 import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
 import { secrets } from "bun";
-import fs from "fs";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
 import { VaultService } from "./index.ts";
