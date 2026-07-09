@@ -108,9 +108,14 @@ describe("Vault Core Functions", () => {
 
     it("should read and parse vault data correctly", async () => {
       const testData = {
-        "key1": "value1",
-        "key2": "value2",
-        "key3": "value3"
+        vaultVersion: 1,
+        entries: {
+          default: {
+            "key1": "value1",
+            "key2": "value2",
+            "key3": "value3"
+          }
+        }
       };
 
       await writeVault(tempFile, "password", testData);
@@ -127,18 +132,23 @@ describe("Vault Core Functions", () => {
     });
 
     it("should handle empty vault data", async () => {
-      await writeVault(tempFile, "password", {});
+      await writeVault(tempFile, "password", { entries: {} });
       const readData = await readVault(tempFile, "password");
 
-      expect(readData).toEqual({});
+      expect(readData).toEqual({ vaultVersion: 1, entries: {} });
     });
   });
 
   describe("writeVault", () => {
     it("should write vault data correctly", async () => {
       const testData = {
-        "api-key": "secret-key",
-        "database-url": "postgres://localhost/test"
+        vaultVersion: 1,
+        entries: {
+          default: {
+            "api-key": "secret-key",
+            "database-url": "postgres://localhost/test"
+          }
+        }
       };
 
       await writeVault(tempFile, "password", testData);
@@ -151,7 +161,7 @@ describe("Vault Core Functions", () => {
     });
 
     it("should set correct file permissions", async () => {
-      await writeVault(tempFile, "password", { test: "data" });
+      await writeVault(tempFile, "password", { entries: { default: { test: "data" } } });
 
       const stats = await fs.stat(tempFile);
       const permissions = stats.mode & 0o777;
@@ -164,7 +174,7 @@ describe("Vault Core Functions", () => {
       await initVault(tempFile, "password");
 
       const readData = await readVault(tempFile, "password");
-      expect(readData).toEqual({});
+      expect(readData).toEqual({ vaultVersion: 1, entries: {} });
     });
 
     it("should create vault file if it does not exist", async () => {

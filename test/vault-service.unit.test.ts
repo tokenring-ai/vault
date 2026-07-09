@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import VaultService from "../VaultService.ts";
 import { createTempFile } from "./test-utils.ts";
 
+const TEST_CATEGORY = "test";
+
 describe("VaultService", () => {
   let vaultService: VaultService;
   let tempDir: string;
@@ -23,7 +25,7 @@ describe("VaultService", () => {
 
     const config = {
       vaultFile: tempVaultFile,
-      relockTime: 300000 // 5 minutes
+      relockTime: 300000
     };
 
     vaultService = new VaultService(config);
@@ -41,74 +43,64 @@ describe("VaultService", () => {
     });
   });
 
-  describe("unlockVault", () => {
+  describe("unlock", () => {
     it("should initialize new vault if file does not exist", async () => {
       const askForTextSpy = vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
 
-      const result = await vaultService.unlockVault(agent);
+      const result = await vaultService.unlock(agent);
 
-      expect(result).toEqual({});
+      expect(result).toEqual({ vaultVersion: 1, entries: {} });
       expect(askForTextSpy).toHaveBeenCalledWith({
-        "message": "Set a password for the new vault.",
-        "label": "Password",
-        "masked": true,
+        message: "Set a vault password so Google tokens can be stored securely.",
+        label: "New Vault Password",
+        masked: true,
       });
     });
 
     it("should unlock existing vault with correct password", async () => {
-      const askForTextSpy = vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
+      vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
+      await vaultService.unlock(agent);
 
-      // First, create and initialize a vault
-      await vaultService.unlockVault(agent);
-      await vaultService.lock(); // Ensure it's locked so it asks for password again
-      vi.clearAllMocks();
-
+      const existingService = new VaultService({ vaultFile: tempVaultFile });
       const askForTextSpy2 = vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
 
-      // Now test unlocking an existing vault
-      const result = await vaultService.unlockVault(agent);
+      const result = await existingService.unlock(agent);
 
-      expect(result).toEqual({});
+      expect(result).toEqual({ vaultVersion: 1, entries: {} });
       expect(askForTextSpy2).toHaveBeenCalledWith({
-        "message": "Enter your password to unlock the vault.",
-        "label": "Password:",
-        "masked": true,
+        message: "Enter the vault password to continue.",
+        label: "Vault Password",
+        masked: true,
       });
     });
 
     it("should throw error on incorrect password", async () => {
-      const askForTextSpy = vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
+      vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
+      await vaultService.unlock(agent);
 
-      // Create a vault with one password
-      await vaultService.unlockVault(agent);
-      await vaultService.lock(); // Ensure it's locked
+      const wrongService = new VaultService({ vaultFile: tempVaultFile });
+      wrongService.setPassword("wrong-password");
 
-      // Mock askForText to return wrong password
-      vi.spyOn(agent, "askForText").mockResolvedValue("wrong-password");
-
-      await expect(vaultService.unlockVault(agent))
-        .rejects.toThrow("Failed to decrypt vault. Invalid password or corrupted vault file.");
+      await expect(wrongService.unlock()).rejects.toThrow("did you provide the right vault password");
     });
 
     it("should handle empty password cancellation", async () => {
-      // For unlockVault (existing file)
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      await vaultService.lock();
+      await vaultService.unlock(agent);
 
+      const existingService = new VaultService({ vaultFile: tempVaultFile });
       vi.spyOn(agent, "askForText").mockResolvedValue("");
 
-      await expect(vaultService.unlockVault(agent))
-        .rejects.toThrow("Password was empty, vault unlock cancelled");
+      await expect(existingService.unlock(agent)).rejects.toThrow("Vault unlock cancelled");
     });
   });
 
   describe("lock", () => {
     it("should lock the vault and clear session data", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      await vaultService.lock();
+      vaultService.lock();
 
       expect(vaultService).toHaveProperty("vaultData", undefined);
     });
@@ -117,68 +109,65 @@ describe("VaultService", () => {
   describe("save", () => {
     it("should save vault data when unlocked", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      const testData = { "key1": "value1", "key2": "value2" };
-      await vaultService.save(testData, agent);
+      const testData = [
+        { category: TEST_CATEGORY, key: "key1", value: "value1" },
+        { category: TEST_CATEGORY, key: "key2", value: "value2" },
+      ];
+      await vaultService.save(testData);
 
-      // Unlock again to verify data was saved
-      vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      const savedData = await vaultService.unlockVault(agent);
-      expect(savedData).toEqual(testData);
+      const savedData = await vaultService.unlock(agent);
+      expect(savedData).toEqual({
+        vaultVersion: 1,
+        entries: { [TEST_CATEGORY]: { key1: "value1", key2: "value2" } },
+      });
     });
 
     it("should throw error when trying to save without unlocking", async () => {
-      const testData = { "key1": "value1" };
+      const testData = [{ category: TEST_CATEGORY, key: "key1", value: "value1" }];
 
-      await expect(vaultService.save(testData, agent))
-        .rejects.toThrow("Vault must be unlocked before saving");
+      await expect(vaultService.save(testData)).rejects.toThrow("No password was set before saving vault");
     });
   });
 
-  describe("getItem", () => {
+  describe("requireItem", () => {
     it("should get existing item", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      const testData = { "test-key": "test-value" };
-      await vaultService.unlockVault(agent);
-      await vaultService.save(testData, agent);
+      await vaultService.unlock(agent);
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "test-value");
 
-      const value = await vaultService.getItem("test-key", agent);
+      const value = vaultService.requireItem(TEST_CATEGORY, "test-key");
       expect(value).toBe("test-value");
     });
 
-    it("should return undefined for non-existing item", async () => {
+    it("should throw for non-existing item", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      const value = await vaultService.getItem("non-existing-key", agent);
-      expect(value).toBeUndefined();
+      expect(() => vaultService.requireItem(TEST_CATEGORY, "non-existing-key")).toThrow();
     });
   });
 
   describe("setItem", () => {
     it("should set new item", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      vi.spyOn(agent, "askForText").mockResolvedValue("new-value");
-      await vaultService.setItem("new-key", "new-value", agent);
+      await vaultService.setItem(TEST_CATEGORY, "new-key", "new-value");
 
-      const value = await vaultService.getItem("new-key", agent);
+      const value = vaultService.requireItem(TEST_CATEGORY, "new-key");
       expect(value).toBe("new-value");
     });
 
     it("should update existing item", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      vi.spyOn(agent, "askForText").mockResolvedValue("first-value");
-      await vaultService.setItem("test-key", "first-value", agent);
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "first-value");
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "updated-value");
 
-      vi.spyOn(agent, "askForText").mockResolvedValue("updated-value");
-      await vaultService.setItem("test-key", "updated-value", agent);
-
-      const value = await vaultService.getItem("test-key", agent);
+      const value = vaultService.requireItem(TEST_CATEGORY, "test-key");
       expect(value).toBe("updated-value");
     });
   });
@@ -190,74 +179,65 @@ describe("VaultService", () => {
 
     it("should return true when vault is unlocked", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
       expect(vaultService.unlocked).toBe(true);
     });
 
     it("should return false after locking", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      await vaultService.lock();
+      await vaultService.unlock(agent);
+      vaultService.lock();
       expect(vaultService.unlocked).toBe(false);
     });
   });
 
-  describe("tryGetItem", () => {
-    it("should return undefined when vault is locked", () => {
-      expect(vaultService.tryGetItem("any-key")).toBeUndefined();
+  describe("requireItem when locked or missing", () => {
+    it("should throw when vault is locked", () => {
+      expect(() => vaultService.requireItem(TEST_CATEGORY, "any-key")).toThrow("Vault is uninitialized or locked");
     });
 
-    it("should return undefined for missing key when vault is unlocked", async () => {
+    it("should throw for missing key when vault is unlocked", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      expect(vaultService.tryGetItem("missing-key")).toBeUndefined();
+      await vaultService.unlock(agent);
+      expect(() => vaultService.requireItem(TEST_CATEGORY, "missing-key")).toThrow();
     });
 
     it("should return value for existing key when vault is unlocked", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      await vaultService.setItem("test-key", "test-value", agent);
-      expect(vaultService.tryGetItem("test-key")).toBe("test-value");
+      await vaultService.unlock(agent);
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "test-value");
+      expect(vaultService.requireItem(TEST_CATEGORY, "test-key")).toBe("test-value");
     });
 
-    it("should return undefined after vault is locked", async () => {
+    it("should throw after vault is locked", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      await vaultService.setItem("test-key", "test-value", agent);
-      expect(vaultService.tryGetItem("test-key")).toBe("test-value");
-      await vaultService.lock();
-      expect(vaultService.tryGetItem("test-key")).toBeUndefined();
+      await vaultService.unlock(agent);
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "test-value");
+      expect(vaultService.requireItem(TEST_CATEGORY, "test-key")).toBe("test-value");
+      vaultService.lock();
+      expect(() => vaultService.requireItem(TEST_CATEGORY, "test-key")).toThrow("Vault is uninitialized or locked");
     });
   });
 
   describe("session management", () => {
     it("should cache session password during operation", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
       vi.clearAllMocks();
 
-      // Second call should use cached password
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
       expect(agent.askForText).not.toHaveBeenCalled();
     });
 
-    it("should clear session on lock", async () => {
+    it("should retain session password across lock", async () => {
       vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
-      await vaultService.lock();
+      await vaultService.unlock(agent);
+      vaultService.lock();
 
-      // After lock, should ask for password again
-      vi.spyOn(agent, "askForText").mockResolvedValue("test-password");
-      await vaultService.unlockVault(agent);
+      await vaultService.unlock(agent);
 
-      expect(agent.askForText).toHaveBeenCalled();
-    });
-
-    it("should clear session on incorrect password", async () => {
-      // This test would require setting up the vault with one password
-      // and then trying with another - let's skip for now as it's complex
-      // to set up in the test environment
+      expect(agent.askForText).not.toHaveBeenCalled();
     });
   });
 });

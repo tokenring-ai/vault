@@ -25,26 +25,26 @@ describe("Vault Plugin", () => {
     });
 
     it("should be a valid TokenRingPlugin", () => {
-      expect(typeof plugin.install).toBe("function");
+      expect(typeof plugin.earlyInstall).toBe("function");
     });
   });
 
-  describe("install", () => {
-    it("should not install without config when no vault config provided", () => {
+  describe("earlyInstall", () => {
+    it("should not install without config when no vault config provided", async () => {
       vi.spyOn(mockApp, "addServices");
       vi.spyOn(mockApp, "waitForService");
 
-      plugin.install(mockApp, {});
+      await plugin.earlyInstall(mockApp, {});
 
       expect(mockApp.addServices).not.toHaveBeenCalled();
       expect(mockApp.waitForService).not.toHaveBeenCalled();
     });
 
-    it("should install with config when vault config provided", () => {
+    it("should install with config when vault config provided", async () => {
       const mockAddServices = vi.spyOn(mockApp, "addServices");
       const mockWaitForService = vi.spyOn(mockApp, "waitForService");
 
-      plugin.install(mockApp, {
+      await plugin.earlyInstall(mockApp, {
         vault: {
           vaultFile: "/path/to/vault",
           relockTime: 300000
