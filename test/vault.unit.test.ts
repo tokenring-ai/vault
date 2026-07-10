@@ -1,5 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import fs from "fs-extra";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { decrypt, deriveKey, encrypt, initVault, readVault, writeVault } from "../vault.ts";
 import { createTempFile } from "./test-utils.ts";
 
@@ -14,7 +14,7 @@ describe("Vault Core Functions", () => {
 
   afterEach(async () => {
     await fs.remove(tempDir);
-    vi.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   describe("deriveKey", () => {
@@ -102,8 +102,7 @@ describe("Vault Core Functions", () => {
 
   describe("readVault", () => {
     it("should throw error when vault file does not exist", async () => {
-      await expect(readVault("non-existent-file.vault", "password"))
-        .rejects.toThrow("Vault file does not exist");
+      expect(readVault("non-existent-file.vault", "password")).rejects.toThrow("Vault file does not exist");
     });
 
     it("should read and parse vault data correctly", async () => {
@@ -111,11 +110,11 @@ describe("Vault Core Functions", () => {
         vaultVersion: 1,
         entries: {
           default: {
-            "key1": "value1",
-            "key2": "value2",
-            "key3": "value3"
-          }
-        }
+            key1: "value1",
+            key2: "value2",
+            key3: "value3",
+          },
+        },
       };
 
       await writeVault(tempFile, "password", testData);
@@ -127,8 +126,7 @@ describe("Vault Core Functions", () => {
     it("should throw error on invalid encrypted data", async () => {
       await fs.writeFile(tempFile, "invalid-encrypted-data");
 
-      await expect(readVault(tempFile, "password"))
-        .rejects.toThrow();
+      expect(readVault(tempFile, "password")).rejects.toThrow();
     });
 
     it("should handle empty vault data", async () => {
@@ -146,9 +144,9 @@ describe("Vault Core Functions", () => {
         entries: {
           default: {
             "api-key": "secret-key",
-            "database-url": "postgres://localhost/test"
-          }
-        }
+            "database-url": "postgres://localhost/test",
+          },
+        },
       };
 
       await writeVault(tempFile, "password", testData);

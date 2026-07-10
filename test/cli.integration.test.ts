@@ -1,8 +1,8 @@
-import { spawn } from "child_process";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import fs from "fs-extra";
-import path from "path";
-import { setTimeout as delay } from "timers/promises";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTempFile } from "./test-utils.ts";
 
 describe("Vault CLI Integration", () => {
@@ -19,39 +19,41 @@ describe("Vault CLI Integration", () => {
   });
 
   function runCommand(command: string, args: string[], password?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise(async (resolve) => {
+    return new Promise(resolve => {
       const child = spawn("bun", [path.join(__dirname, "../cli.ts"), command, ...args, "--file", vaultFile], {
         cwd: __dirname,
-        env: { ...process.env, BUNDLE_ALLOW_RUNTIME: "1" }
+        env: { ...process.env, BUNDLE_ALLOW_RUNTIME: "1" },
       });
 
       let stdout = "";
       let stderr = "";
 
-      child.stdout.on("data", (data) => {
+      child.stdout.on("data", data => {
         stdout += data.toString();
       });
 
-      child.stderr.on("data", (data) => {
+      child.stderr.on("data", data => {
         stderr += data.toString();
       });
 
-      child.on("close", (exitCode) => {
+      child.on("close", exitCode => {
         stdout = stdout.trim().replace(/Enter vault password:|Set a password for the new vault:|Enter current vault password:|Enter new vault password:/g, "");
         resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
       });
 
-      if (password) {
-        // Handle multiple password prompts by splitting by newline
-        const passwords = password.split("\n");
-        for (const p of passwords) {
-          await delay(100);
-          child.stdin.write(p + "\n");
-        }
+      return (async () => {
+        if (password) {
+          // Handle multiple password prompts by splitting by newline
+          const passwords = password.split("\n");
+          for (const p of passwords) {
+            await delay(100);
+            child.stdin.write(p + "\n");
+          }
 
-        await delay(100);
-        child.stdin.end();
-      }
+          await delay(100);
+          child.stdin.end();
+        }
+      })();
     });
   }
 
@@ -73,37 +75,37 @@ describe("Vault CLI Integration", () => {
     });
 
     it("should set a key-value pair", async () => {
-      const result = await runCommand("set", ["test-key", "test-value"], "test-password");
+      const result = await runCommand("set", ["test.key", "test-value"], "test-password");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Set test-key");
+      expect(result.stdout).toContain("Set test.key");
     });
 
     it("should handle multiple key-value pairs", async () => {
-      await runCommand("set", ["key1", "value1"], "test-password");
-      await runCommand("set", ["key2", "value2"], "test-password");
+      await runCommand("set", ["test.key1", "value1"], "test-password");
+      await runCommand("set", ["test.key2", "value2"], "test-password");
 
-      const result = await runCommand("get", ["key1"], "test-password");
+      const result = await runCommand("get", ["test.key1"], "test-password");
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("key1: value1");
+      expect(result.stdout.trim()).toBe("value1");
     });
   });
 
   describe("get command", () => {
     beforeEach(async () => {
       await runCommand("init", [], "test-password");
-      await runCommand("set", ["test-key", "test-value"], "test-password");
+      await runCommand("set", ["test.key", "test-value"], "test-password");
     });
 
     it("should retrieve existing key", async () => {
-      const result = await runCommand("get", ["test-key"], "test-password");
+      const result = await runCommand("get", ["test.key"], "test-password");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toBe("test-key: test-value");
+      expect(result.stdout.trim()).toBe("test-value");
     });
 
     it("should handle non-existing key", async () => {
-      const result = await runCommand("get", ["non-existing-key"], "test-password");
+      const result = await runCommand("get", ["test.non-existing-key"], "test-password");
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout.trim()).toBe("");
@@ -113,9 +115,9 @@ describe("Vault CLI Integration", () => {
   describe("list command", () => {
     beforeEach(async () => {
       await runCommand("init", [], "test-password");
-      await runCommand("set", ["key1", "value1"], "test-password");
-      await runCommand("set", ["key2", "value2"], "test-password");
-      await runCommand("set", ["key3", "value3"], "test-password");
+      await runCommand("set", ["test.key1", "value1"], "test-password");
+      await runCommand("set", ["test.key2", "value2"], "test-password");
+      await runCommand("set", ["test.key3", "value3"], "test-password");
     });
 
     it("should list all keys", async () => {
@@ -123,25 +125,25 @@ describe("Vault CLI Integration", () => {
 
       expect(result.exitCode).toBe(0);
       const keys = result.stdout.trim().split("\n");
-      expect(keys).toContain("key1");
-      expect(keys).toContain("key2");
-      expect(keys).toContain("key3");
+      expect(keys).toContain("test.key1");
+      expect(keys).toContain("test.key2");
+      expect(keys).toContain("test.key3");
     });
   });
 
   describe("remove command", () => {
     beforeEach(async () => {
       await runCommand("init", [], "test-password");
-      await runCommand("set", ["test-key", "test-value"], "test-password");
+      await runCommand("set", ["test.key", "test-value"], "test-password");
     });
 
     it("should remove existing key", async () => {
-      const result = await runCommand("remove", ["test-key"], "test-password");
+      const result = await runCommand("remove", ["test.key"], "test-password");
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("Removed test-key");
+      expect(result.stdout).toContain("Removed test.key");
 
-      const getResult = await runCommand("get", ["test-key"], "test-password");
+      const getResult = await runCommand("get", ["test.key"], "test-password");
       expect(getResult.stdout.trim()).toBe("");
     });
   });
@@ -149,7 +151,7 @@ describe("Vault CLI Integration", () => {
   describe("change-password command", () => {
     it("should change vault password", async () => {
       await runCommand("init", [], "test-password");
-      await runCommand("set", ["test-key", "test-value"], "test-password");
+      await runCommand("set", ["test.key", "test-value"], "test-password");
 
       const result = await runCommand("change-password", [], "test-password\nnew-password\n");
 
@@ -160,14 +162,14 @@ describe("Vault CLI Integration", () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Password changed successfully");
 
-      const getResult = await runCommand("get", ["test-key"], "new-password");
-      expect(getResult.stdout.trim()).toBe("test-key: test-value");
+      const getResult = await runCommand("get", ["test.key"], "new-password");
+      expect(getResult.stdout.trim()).toBe("test-value");
     });
   });
 
   describe("error handling", () => {
     it("should handle missing vault file", async () => {
-      const result = await runCommand("get", ["test-key"], "test-password");
+      const result = await runCommand("get", ["test.key"], "test-password");
 
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain("Vault file does not exist");

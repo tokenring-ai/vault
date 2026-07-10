@@ -13,7 +13,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "vitest": "^4.1.1",
     "typescript": "^6.0.2"
   },
   "exports": {
@@ -30,11 +29,11 @@
   ],
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "bun test",
     "prepublishOnly": "bun run build",
     "release:patch": "NEWVERSION=`bun pm version patch` && git add package.json && git commit -m \"Bump version to ${NEWVERSION}\" && git tag ${NEWVERSION} && git push && git push --tags",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
   },
   "license": "MIT",
   "type": "module"
