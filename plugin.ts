@@ -1,8 +1,8 @@
-import fs from "node:fs";
 import { AgentCommandService } from "@tokenring-ai/agent";
 import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
 import { secrets } from "bun";
+import crypto from "node:crypto";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
 import { VaultService } from "./index.ts";
@@ -11,8 +11,50 @@ import vaultRPC from "./rpc/vault.ts";
 import { VaultConfigSchema } from "./schema.ts";
 
 const packageConfigSchema = z.object({
-  vault: VaultConfigSchema.exactOptional(),
+  vault: VaultConfigSchema,
 });
+
+const SECRETS_SERVICE = "tokenring";
+const SECRETS_NAME = "vault-password";
+
+/**
+ * Resolve the vault password without prompting.
+ * Preference order:
+ * 1. TR_VAULT_PASSWORD environment variable
+ * 2. System secrets manager (auto-generate and store if missing)
+ */
+async function resolveVaultPassword(): Promise<string> {
+  const fromEnv = process.env.TR_VAULT_PASSWORD;
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  try {
+    const existing = await secrets.get({
+      service: SECRETS_SERVICE,
+      name: SECRETS_NAME,
+    });
+    if (existing) {
+      return existing;
+    }
+
+    // Secrets manager is available but no key is stored yet — generate one.
+    const generated = crypto.randomBytes(32).toString("base64url");
+    await secrets.set({
+      service: SECRETS_SERVICE,
+      name: SECRETS_NAME,
+      value: generated,
+    });
+    return generated;
+  } catch {
+    // Secrets manager is not available on this platform.
+  }
+
+  throw new Error(
+    "Vault is required but no password is available. " +
+      "Set the TR_VAULT_PASSWORD environment variable, or run on a system with a secrets manager.",
+  );
+}
 
 export default {
   name: packageJSON.name,
@@ -20,55 +62,20 @@ export default {
   version: packageJSON.version,
   description: packageJSON.description,
   async earlyInstall(app, config) {
-    if (config.vault) {
-      const vaultService = new VaultService(config.vault);
+    const vaultService = new VaultService(config.vault);
 
-      let vaultPassword = process.env.TR_VAULT_PASSWORD ?? null;
-      if (!vaultPassword) {
-        vaultPassword = await secrets.get({
-          service: "tokenring",
-          name: "vault-password",
-        });
-      }
+    const vaultPassword = await resolveVaultPassword();
+    vaultService.setPassword(vaultPassword);
+    await vaultService.unlock();
+    vaultService.injectEnv();
 
-      if (!vaultPassword) {
-        const exists = fs.existsSync(config.vault.vaultFile);
-        if (exists) {
-          vaultPassword = prompt(
-            "Please enter your TokenRing vault password to unlock your vault, or press enter to not use your vault for this session.\nPassword:",
-          );
-        } else {
-          vaultPassword = prompt(
-            `
-You have enabled the TokenRing vault, which stores session tokens and API keys in an AES-256 encrypted file at ${config.vault.vaultFile}.
-To use the vault, you will need to create a password, which you will need to be entered at startup, or it can be provided via the TR_VAULT_PASSWORD environment variable.
-This password will be used to encrypt and decrypt the vault file.
-
-Enter a password to use:`.trim(),
-          );
-
-          const confirmPassword = prompt("Confirm your new password:");
-          if (confirmPassword !== vaultPassword) {
-            console.error("Passwords do not match. Vault setup aborted.");
-            process.exit(1);
-          }
-        }
-      }
-
-      if (vaultPassword) {
-        vaultService.setPassword(vaultPassword);
-        await vaultService.unlock();
-        vaultService.injectEnv();
-      }
-
-      app.addServices(vaultService);
-      app.waitForService(AgentCommandService, commandService => {
-        commandService.addAgentCommands(agentCommands);
-      });
-      app.waitForService(RpcService, rpcService => {
-        rpcService.registerEndpoint(vaultRPC);
-      });
-    }
+    app.addServices(vaultService);
+    app.waitForService(AgentCommandService, commandService => {
+      commandService.addAgentCommands(agentCommands);
+    });
+    app.waitForService(RpcService, rpcService => {
+      rpcService.registerEndpoint(vaultRPC);
+    });
   },
   config: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

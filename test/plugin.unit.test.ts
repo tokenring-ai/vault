@@ -41,17 +41,7 @@ describe("Vault Plugin", () => {
   });
 
   describe("earlyInstall", () => {
-    it("should not install without config when no vault config provided", async () => {
-      spyOn(mockApp, "addServices");
-      spyOn(mockApp, "waitForService");
-
-      await plugin.earlyInstall(mockApp, {});
-
-      expect(mockApp.addServices).not.toHaveBeenCalled();
-      expect(mockApp.waitForService).not.toHaveBeenCalled();
-    });
-
-    it("should install with config when vault config provided", async () => {
+    it("should install and unlock when TR_VAULT_PASSWORD is provided", async () => {
       const mockAddServices = spyOn(mockApp, "addServices");
       const mockWaitForService = spyOn(mockApp, "waitForService");
       const vaultFile = `${tempDir}/test.vault`;
@@ -66,6 +56,25 @@ describe("Vault Plugin", () => {
 
       expect(mockAddServices).toHaveBeenCalled();
       expect(mockWaitForService).toHaveBeenCalled();
+      expect(await fs.pathExists(vaultFile)).toBe(true);
+    });
+
+    it("should unlock an existing vault with TR_VAULT_PASSWORD", async () => {
+      const vaultFile = `${tempDir}/existing.vault`;
+      process.env.TR_VAULT_PASSWORD = "existing-password";
+
+      // Initialize vault on first install
+      await plugin.earlyInstall(createTestingApp(), {
+        vault: { vaultFile },
+      });
+      expect(await fs.pathExists(vaultFile)).toBe(true);
+
+      // Unlock again with the same password
+      const mockAddServices = spyOn(mockApp, "addServices");
+      await plugin.earlyInstall(mockApp, {
+        vault: { vaultFile },
+      });
+      expect(mockAddServices).toHaveBeenCalled();
     });
   });
 });
