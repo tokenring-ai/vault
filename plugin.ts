@@ -1,8 +1,8 @@
+import crypto from "node:crypto";
 import { AgentCommandService } from "@tokenring-ai/agent";
 import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
 import { secrets } from "bun";
-import crypto from "node:crypto";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
 import { VaultService } from "./index.ts";
@@ -51,8 +51,7 @@ async function resolveVaultPassword(): Promise<string> {
   }
 
   throw new Error(
-    "Vault is required but no password is available. " +
-      "Set the TR_VAULT_PASSWORD environment variable, or run on a system with a secrets manager.",
+    "Vault is required but no password is available. " + "Set the TR_VAULT_PASSWORD environment variable, or run on a system with a secrets manager.",
   );
 }
 
