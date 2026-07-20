@@ -83,6 +83,16 @@ export default class VaultService implements TokenRingService {
     return schema.parse(JSON.parse(value));
   }
 
+  getItemsByCategory(category: string): Record<string, string> {
+    if (!this.vaultData) throw new Error("Vault is uninitialized or locked");
+    return this.vaultData.entries[category] ?? {};
+  }
+
+  getJSONItemsByCategory<T>(category: string, schema: z.ZodType<T>): Record<string, T> {
+    const items = this.getItemsByCategory(category);
+    return Object.fromEntries(Object.entries(items).map(([key, value]) => [key, schema.parse(JSON.parse(value))]));
+  }
+
   async setItem(category: string, key: string, value: string): Promise<void> {
     await this.save([{ category, key, value }]);
   }
