@@ -906,7 +906,6 @@ pkg/vault/
 │   ├── schema.ts            # RPC schema definition
 │   └── vault.ts             # RPC endpoint implementation
 ├── package.json
-├── vitest.config.ts
 ├── LICENSE
 └── test/
     ├── plugin.unit.test.ts
@@ -935,7 +934,7 @@ pkg/vault/
 
 | Package      | Version  | Description         |
 |--------------|----------|---------------------|
-| `vitest`     | `^4.1.1` | Testing framework   |
+| `bun test`     | builtin  | Testing framework   |
 | `typescript` | `^6.0.2` | TypeScript compiler |
 
 ## Related Components

@@ -31,7 +31,7 @@ describe("Vault Plugin", () => {
   describe("plugin metadata", () => {
     it("should have correct plugin properties", () => {
       expect(plugin.name).toBe("@tokenring-ai/vault");
-      expect(plugin.version).toBe("0.2.0");
+      expect(plugin.version).toBe("0.1.3");
       expect(plugin.description).toBe("Secure storage service for managing sensitive API keys and persistent credentials.");
     });
 
