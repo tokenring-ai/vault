@@ -76,5 +76,5 @@ export default {
       rpcService.registerEndpoint(vaultRPC);
     });
   },
-  config: packageConfigSchema,
+  configSchema: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;
