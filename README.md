@@ -199,18 +199,21 @@ const config = vaultService.requireJsonItem('config', 'settings', z.object({
 }));
 ```
 
-#### `injectEnv(): void`
+#### `getSecret(category: string, key: string): string | undefined`
 
-Injects all secrets in the `env` category into process environment variables.
+Reads an entry without throwing, returning undefined when the vault is locked or the entry is absent.
 
-- **Returns:** `void`
+This is the {@link SecretStore} contract the app's `SecretService` uses to resolve `{ source: "vault" }`
+configuration references.
+
+- **Returns:** `string | undefined`
 
 **Example:**
 
 ```typescript
 await vaultService.setItem('env', 'API_KEY', 'secret_value');
-vaultService.injectEnv();
-console.log(process.env.API_KEY); // 'secret_value'
+vaultService.getSecret('env', 'API_KEY'); // 'secret_value'
+vaultService.getSecret('env', 'MISSING'); // undefined
 ```
 
 #### `setPassword(password: string): void`
@@ -850,16 +853,22 @@ re-prompting for the password. The password is cleared when:
 - `lock()` is called explicitly
 - The service is restarted
 
-### Environment Variable Injection
+### Reading Secrets From Configuration
 
-The `injectEnv()` method injects all secrets in the `env` category into `process.env`. This is useful for applications
-that expect secrets in environment variables.
+Vault entries are never injected into `process.env`. Plugins declare a secret in their config schema and the
+user points it at a vault entry:
 
-```typescript
-await vaultService.setItem('env', 'API_KEY', 'secret_value');
-vaultService.injectEnv();
-// process.env.API_KEY is now 'secret_value'
+```yaml
+serper:
+  apiKey:
+    source: vault
+    category: env
+    key: SERPER_API_KEY
 ```
+
+For compatibility with vaults populated while the vault injected its `env` category, an `{ source: "env" }`
+reference falls back to the entry of the same name in the vault's `env` category when the environment
+variable is not set.
 
 ## Testing
 

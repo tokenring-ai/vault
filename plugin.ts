@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { AgentCommandService } from "@tokenring-ai/agent";
 import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
+import { SecretService } from "@tokenring-ai/secrets";
 import { secrets } from "bun";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
@@ -66,7 +67,10 @@ export default {
     const vaultPassword = await resolveVaultPassword();
     vaultService.setPassword(vaultPassword);
     await vaultService.unlock();
-    vaultService.injectEnv();
+
+    // Vault entries are read through explicit `{ source: "vault" }` config
+    // references rather than being injected into the process environment.
+    app.waitForService(SecretService, secretService => secretService.setStore(vaultService));
 
     app.addServices(vaultService);
     app.waitForService(AgentCommandService, commandService => {

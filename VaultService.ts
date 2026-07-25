@@ -1,11 +1,12 @@
 import type Agent from "@tokenring-ai/agent/Agent";
 import type { TokenRingService } from "@tokenring-ai/app/types";
+import type { SecretStore } from "@tokenring-ai/secrets";
 import fs from "fs-extra";
 import type { z } from "zod";
 import type { ParsedVaultConfig, VaultEntryUpdate, VaultFileData } from "./schema.ts";
 import { readOrInitializeVault, writeVault } from "./vault.ts";
 
-export default class VaultService implements TokenRingService {
+export default class VaultService implements TokenRingService, SecretStore {
   readonly name = "VaultService";
   description = "A vault service for storing persisted credentials";
   // Add password caching during session
@@ -18,11 +19,19 @@ export default class VaultService implements TokenRingService {
     return !!this.vaultData;
   }
 
-  injectEnv() {
-    if (!this.vaultData) return;
-    for (const [key, value] of Object.entries(this.vaultData.entries.env ?? {})) {
-      process.env[key] = value;
-    }
+  /**
+   * Reads an entry without throwing — the {@link SecretStore} contract used by
+   * the app's SecretService to resolve `{ source: "vault" }` config references.
+   * Returns undefined when the vault is locked or the entry is absent, so an
+   * unset credential looks the same as a missing environment variable.
+   */
+  getSecret(category: string, key: string): string | undefined {
+    return this.vaultData?.entries[category]?.[key];
+  }
+
+  /** Every entry in a category, or an empty object when the vault is locked. */
+  listSecrets(category: string): Record<string, string> {
+    return this.vaultData?.entries[category] ?? {};
   }
 
   setPassword(password: string) {
