@@ -4,6 +4,7 @@ import type { TokenRingPlugin } from "@tokenring-ai/app";
 import { RpcService } from "@tokenring-ai/rpc";
 import { SecretService } from "@tokenring-ai/secrets";
 import { secrets } from "bun";
+import type { ZodNever } from "zod";
 import { z } from "zod";
 import agentCommands from "./commands.ts";
 import { VaultService } from "./index.ts";
@@ -80,5 +81,5 @@ export default {
       rpcService.registerEndpoint(vaultRPC);
     });
   },
-  configSchema: packageConfigSchema,
-} satisfies TokenRingPlugin<typeof packageConfigSchema>;
+  immutableConfigSchema: packageConfigSchema,
+} satisfies TokenRingPlugin<ZodNever, typeof packageConfigSchema>;
