@@ -24,6 +24,16 @@ export default createRPCEndpoint(VaultRpcSchema, {
 
   streamEntries,
 
+  async getItem(args, app: TokenRingApp) {
+    const vault = app.requireService(VaultService);
+    await vault.unlock();
+    const value = vault.getSecret(args.category, args.key);
+    if (value === undefined) {
+      return { found: false };
+    }
+    return { found: true, value };
+  },
+
   async setItems(args, app: TokenRingApp) {
     const vault = app.requireService(VaultService);
     await vault.save(args.updates);

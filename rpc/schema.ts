@@ -16,6 +16,18 @@ export default {
       input: z.object({}),
       result: z.record(z.string(), z.array(z.string())),
     },
+    /** Fetch a single secret value on demand (for reveal in the Vault UI). */
+    getItem: {
+      type: "query",
+      input: z.object({
+        category: z.string().min(1),
+        key: z.string().min(1),
+      }),
+      result: z.object({
+        found: z.boolean(),
+        value: z.string().optional(),
+      }),
+    },
     setItems: {
       type: "mutation",
       input: z.object({
