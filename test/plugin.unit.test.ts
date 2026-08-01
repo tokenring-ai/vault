@@ -42,7 +42,7 @@ describe("Vault Plugin", () => {
 
   describe("earlyInstall", () => {
     it("should install and unlock when TR_VAULT_PASSWORD is provided", async () => {
-      const mockAddServices = spyOn(mockApp, "addServices");
+      const mockAddServices = spyOn(mockApp, "addService");
       const mockWaitForService = spyOn(mockApp, "waitForService");
       const vaultFile = `${tempDir}/test.vault`;
       process.env.TR_VAULT_PASSWORD = "test-password";
@@ -70,7 +70,7 @@ describe("Vault Plugin", () => {
       expect(await fs.pathExists(vaultFile)).toBe(true);
 
       // Unlock again with the same password
-      const mockAddServices = spyOn(mockApp, "addServices");
+      const mockAddServices = spyOn(mockApp, "addService");
       await plugin.earlyInstall(mockApp, {
         vault: { vaultFile },
       });

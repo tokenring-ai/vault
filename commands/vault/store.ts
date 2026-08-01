@@ -9,11 +9,11 @@ const inputSchema = {
   ],
 } as const satisfies AgentCommandInputSchema;
 
-async function execute({ positionals: { key, value }, agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
+async function execute({ args: { key, value }, agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
   const [category, ...rest] = key.split(".") as [string];
   const k = rest.join(".");
   if (!k) throw new Error(`Key must be in format "category.key"`);
-  await agent.requireServiceByType(VaultService).setItem(category, k, value);
+  await agent.requireService(VaultService).setItem(category, k, value);
   return `Stored credential: ${key}`;
 }
 

@@ -13,7 +13,7 @@ export default {
 /vault lock`,
   inputSchema,
   execute({ agent }: AgentCommandInputType<typeof inputSchema>) {
-    agent.requireServiceByType(VaultService).lock();
+    agent.requireService(VaultService).lock();
     return "Vault locked";
   },
 } satisfies TokenRingAgentCommand<typeof inputSchema>;
