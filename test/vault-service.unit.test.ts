@@ -32,6 +32,7 @@ describe("VaultService", () => {
   });
 
   afterEach(async () => {
+    vaultService.lock();
     await fs.remove(tempDir);
     mock.clearAllMocks();
   });
@@ -81,7 +82,7 @@ describe("VaultService", () => {
       const wrongService = new VaultService({ vaultFile: tempVaultFile });
       wrongService.setPassword("wrong-password");
 
-      expect(wrongService.unlock()).rejects.toThrow("did you provide the right vault password");
+      expect(wrongService.unlock()).rejects.toThrow("Did you provide the right password");
     });
 
     it("should handle empty password cancellation", async () => {
@@ -239,6 +240,35 @@ describe("VaultService", () => {
       await vaultService.unlock(agent);
 
       expect(agent.askForText).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteItem", () => {
+    it("should remove an item and drop an empty category", async () => {
+      spyOn(agent, "askForText").mockResolvedValue("test-password");
+      await vaultService.unlock(agent);
+      await vaultService.setItem(TEST_CATEGORY, "test-key", "test-value");
+      await vaultService.setItem("keep", "other-key", "other-value");
+
+      await vaultService.deleteItem(TEST_CATEGORY, "test-key", agent);
+
+      const data = await vaultService.unlock(agent);
+      expect(data.entries[TEST_CATEGORY]).toBeUndefined();
+      expect(data.entries.keep).toEqual({ "other-key": "other-value" });
+    });
+  });
+
+  describe("relockTime", () => {
+    it("should lock the vault after the configured idle time", async () => {
+      vaultService.lock();
+      vaultService = new VaultService({ vaultFile: tempVaultFile, relockTime: 40 });
+      spyOn(agent, "askForText").mockResolvedValue("test-password");
+      await vaultService.unlock(agent);
+      expect(vaultService.unlocked).toBe(true);
+
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      expect(vaultService.unlocked).toBe(false);
     });
   });
 });

@@ -20,7 +20,7 @@ export const VaultFileSchema = z.object({
   entries: z.record(z.string().min(1), z.record(z.string().min(1), z.string())),
 });
 
-export type VaultFileData = z.input<typeof VaultFileSchema>;
+export type VaultFileData = z.output<typeof VaultFileSchema>;
 
 export const VaultEntryDeleteSchema = z.object({
   category: z.string().min(1),

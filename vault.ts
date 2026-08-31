@@ -57,11 +57,16 @@ export async function readVault(vaultFile: string, password: string): Promise<Va
   }
 
   const encryptedContent = await fs.readFile(vaultFile, "utf8");
+  let decryptedContent: string;
   try {
-    const decryptedContent = decrypt(encryptedContent, password);
+    decryptedContent = decrypt(encryptedContent, password);
+  } catch (error) {
+    throw new Error(`Failed to decrypt vault file ${vaultFile}. Did you provide the right password?\n\n${formatError(error)}`);
+  }
+  try {
     return VaultFileSchema.parse(JSON.parse(decryptedContent));
   } catch (error) {
-    throw new Error(`Encountered an error while decrypting vault file ${vaultFile}, did you provide the right vault password?\n\n${formatError(error)}`);
+    throw new Error(`Vault file ${vaultFile} contains corrupted data.\n\n${formatError(error)}`);
   }
 }
 

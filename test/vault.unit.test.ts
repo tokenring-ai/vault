@@ -130,10 +130,22 @@ describe("Vault Core Functions", () => {
     });
 
     it("should handle empty vault data", async () => {
-      await writeVault(tempFile, "password", { entries: {} });
+      await writeVault(tempFile, "password", { vaultVersion: 1, entries: {} });
       const readData = await readVault(tempFile, "password");
 
       expect(readData).toEqual({ vaultVersion: 1, entries: {} });
+    });
+
+    it("should throw a corruption error when decrypted JSON is invalid", async () => {
+      await fs.writeFile(tempFile, encrypt("not-json", "password"));
+
+      expect(readVault(tempFile, "password")).rejects.toThrow("contains corrupted data");
+    });
+
+    it("should throw a password error when decryption fails", async () => {
+      await writeVault(tempFile, "password", { vaultVersion: 1, entries: {} });
+
+      expect(readVault(tempFile, "wrong-password")).rejects.toThrow("Did you provide the right password");
     });
   });
 
@@ -159,7 +171,7 @@ describe("Vault Core Functions", () => {
     });
 
     it("should set correct file permissions", async () => {
-      await writeVault(tempFile, "password", { entries: { default: { test: "data" } } });
+      await writeVault(tempFile, "password", { vaultVersion: 1, entries: { default: { test: "data" } } });
 
       const stats = await fs.stat(tempFile);
       const permissions = stats.mode & 0o777;

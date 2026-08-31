@@ -12,6 +12,7 @@ export default class VaultService implements TokenRingService, SecretStore {
   // Add password caching during session
   private sessionPassword: string | undefined;
   private vaultData: VaultFileData | undefined;
+  private relockTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(readonly options: ParsedVaultConfig) {}
 
@@ -26,12 +27,16 @@ export default class VaultService implements TokenRingService, SecretStore {
    * unset credential looks the same as a missing environment variable.
    */
   getSecret(category: string, key: string): string | undefined {
-    return this.vaultData?.entries[category]?.[key];
+    if (!this.vaultData) return undefined;
+    this.scheduleRelock();
+    return this.vaultData.entries[category]?.[key];
   }
 
   /** Every entry in a category, or an empty object when the vault is locked. */
   listSecrets(category: string): Record<string, string> {
-    return this.vaultData?.entries[category] ?? {};
+    if (!this.vaultData) return {};
+    this.scheduleRelock();
+    return this.vaultData.entries[category] ?? {};
   }
 
   setPassword(password: string) {
@@ -43,30 +48,33 @@ export default class VaultService implements TokenRingService, SecretStore {
 
     if (this.sessionPassword) {
       this.vaultData = await readOrInitializeVault(this.options.vaultFile, this.sessionPassword);
+      this.scheduleRelock();
     }
   }
 
   async save(modifications: VaultEntryUpdate[] = []) {
     if (!this.sessionPassword) throw new Error("No password was set before saving vault");
 
-    this.vaultData ??= {
-      vaultVersion: 1,
-      entries: {},
-    };
+    await this.unlock();
 
     for (const modification of modifications) {
-      (this.vaultData.entries[modification.category] ??= {})[modification.key] = modification.value;
+      (this.vaultData!.entries[modification.category] ??= {})[modification.key] = modification.value;
     }
 
-    await writeVault(this.options.vaultFile, this.sessionPassword!, this.vaultData);
+    await writeVault(this.options.vaultFile, this.sessionPassword, this.vaultData!);
+    this.scheduleRelock();
   }
 
   lock() {
+    this.clearRelockTimer();
     this.vaultData = undefined;
   }
 
   async unlock(agent?: Agent): Promise<VaultFileData> {
-    if (this.vaultData) return this.vaultData;
+    if (this.vaultData) {
+      this.scheduleRelock();
+      return this.vaultData;
+    }
 
     if (!this.sessionPassword) {
       if (!agent) {
@@ -76,11 +84,13 @@ export default class VaultService implements TokenRingService, SecretStore {
     }
 
     this.vaultData = await readOrInitializeVault(this.options.vaultFile, this.sessionPassword);
+    this.scheduleRelock();
     return this.vaultData;
   }
 
   requireItem(category: string, key: string): string {
     if (!this.vaultData) throw new Error("Vault is uninitialized or locked");
+    this.scheduleRelock();
     const data = this.vaultData;
     if (!data.entries[category]) throw new Error(`Category ${category} does not exist in vault`);
     if (!data.entries[category][key]) throw new Error(`Item ${key} does not exist in category ${category} in vault`);
@@ -94,6 +104,7 @@ export default class VaultService implements TokenRingService, SecretStore {
 
   getItemsByCategory(category: string): Record<string, string> {
     if (!this.vaultData) throw new Error("Vault is uninitialized or locked");
+    this.scheduleRelock();
     return this.vaultData.entries[category] ?? {};
   }
 
@@ -118,7 +129,30 @@ export default class VaultService implements TokenRingService, SecretStore {
       throw new Error(`Key ${key} does not exist in category ${category}`);
     }
     delete this.vaultData.entries[category][key];
+    if (Object.keys(this.vaultData.entries[category]).length === 0) {
+      delete this.vaultData.entries[category];
+    }
     await writeVault(this.options.vaultFile, this.sessionPassword!, this.vaultData);
+    this.scheduleRelock();
+  }
+
+  private clearRelockTimer() {
+    if (this.relockTimer !== undefined) {
+      clearTimeout(this.relockTimer);
+      this.relockTimer = undefined;
+    }
+  }
+
+  private scheduleRelock() {
+    this.clearRelockTimer();
+    const relockTime = this.options.relockTime;
+    if (relockTime === undefined || relockTime <= 0 || !this.vaultData) return;
+
+    this.relockTimer = setTimeout(() => {
+      this.relockTimer = undefined;
+      this.lock();
+    }, relockTime);
+    this.relockTimer.unref();
   }
 
   private async promptForPassword(agent: Agent): Promise<string> {

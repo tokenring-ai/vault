@@ -63,7 +63,7 @@ export default {
   version: packageJSON.version,
   description: packageJSON.description,
   async earlyInstall(app, config) {
-    const vaultService = app.addService(new VaultService(config.vault));
+    const vaultService = app.addService(VaultService, new VaultService(config.vault));
 
     const vaultPassword = await resolveVaultPassword();
     vaultService.setPassword(vaultPassword);
