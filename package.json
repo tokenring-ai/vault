@@ -18,6 +18,7 @@
   },
   "exports": {
     ".": "./index.ts",
+    "./frontend/*": "./frontend/*",
     "./*": "./*.ts"
   },
   "bin": {
