@@ -2,6 +2,21 @@ import type { RPCSchema } from "@tokenring-ai/rpc/types";
 import { z } from "zod";
 import { VaultEntryDeleteSchema, VaultEntryUpdateSchema } from "../schema.ts";
 
+const MutationResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export const VaultStatusSchema = z.object({
+  unlocked: z.boolean(),
+  /** Where the password is kept between runs: "keychain", "environment", or "session". */
+  passwordSource: z.string(),
+  /** Whether changePassword can run from here; `reason` says why not. */
+  canChangePassword: z.boolean(),
+  reason: z.string().exactOptional(),
+});
+export type VaultStatus = z.infer<typeof VaultStatusSchema>;
+
 export default {
   name: "Vault RPC",
   path: "/rpc/vault",
@@ -47,6 +62,57 @@ export default {
         success: z.boolean(),
         message: z.string(),
       }),
+    },
+    /** Rename a key, move it to another category, or both. */
+    moveItem: {
+      type: "mutation",
+      input: z.object({
+        from: VaultEntryDeleteSchema,
+        to: VaultEntryDeleteSchema,
+        overwrite: z.boolean().default(false),
+      }),
+      result: MutationResultSchema,
+    },
+    createCategory: {
+      type: "mutation",
+      input: z.object({
+        category: z.string().min(1).max(64),
+      }),
+      result: MutationResultSchema,
+    },
+    /** Locked state and whether the password can be changed from the UI. Never unlocks. */
+    getStatus: {
+      type: "query",
+      input: z.object({}),
+      result: VaultStatusSchema,
+    },
+    streamStatus: {
+      type: "stream",
+      input: z.object({}),
+      result: VaultStatusSchema,
+    },
+    /** Drop the decrypted entries and cached password from server memory. */
+    lock: {
+      type: "mutation",
+      input: z.object({}),
+      result: MutationResultSchema,
+    },
+    /** Unlock with the given password, or without one from the environment / OS secrets manager. */
+    unlock: {
+      type: "mutation",
+      input: z.object({
+        password: z.string().min(1).exactOptional(),
+      }),
+      result: MutationResultSchema,
+    },
+    /** Re-encrypt the vault under a new master password (and update the OS secrets manager entry). */
+    changePassword: {
+      type: "mutation",
+      input: z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8),
+      }),
+      result: MutationResultSchema,
     },
   },
 } satisfies RPCSchema;

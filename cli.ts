@@ -159,9 +159,13 @@ program
     const child = spawn(command, args, {
       env,
       stdio: "inherit",
-      shell: true,
     });
 
+    // Without a shell, args reach the executable verbatim (no re-parsing/quotes).
+    child.on("error", err => {
+      console.error(`Failed to run ${command}: ${err.message}`);
+      process.exit(1);
+    });
     child.on("exit", code => {
       process.exit(code ?? 0);
     });

@@ -5,6 +5,7 @@ import type TokenRingApp from "@tokenring-ai/app";
 import createTestingApp from "@tokenring-ai/app/test/createTestingApp.test";
 import fs from "fs-extra";
 import VaultService from "../VaultService.ts";
+import { readVault, writeVault } from "../vault.ts";
 import { createTempFile } from "./test-utils.ts";
 
 const TEST_CATEGORY = "test";
@@ -231,15 +232,52 @@ describe("VaultService", () => {
       expect(agent.askForText).not.toHaveBeenCalled();
     });
 
-    it("should retain session password across lock", async () => {
+    it("clears the session password on lock, so a prompted password is asked for again", async () => {
       spyOn(agent, "askForText").mockResolvedValue("test-password");
       await vaultService.unlock(agent);
       vaultService.lock();
       mock.clearAllMocks();
 
+      await expect(vaultService.unlock()).rejects.toThrow("No password was set before unlocking vault");
       await vaultService.unlock(agent);
+      expect(agent.askForText).toHaveBeenCalledTimes(1);
+    });
 
+    it("re-obtains the password from the resolver after lock, without prompting", async () => {
+      const resolver = mock(async () => "keychain-password");
+      vaultService.setPasswordResolver(resolver);
+      await vaultService.unlock();
+      vaultService.lock();
+      expect(vaultService).toHaveProperty("sessionPassword", undefined);
+
+      spyOn(agent, "askForText");
+      await vaultService.unlock();
+      expect(resolver).toHaveBeenCalledTimes(2);
       expect(agent.askForText).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("external changes", () => {
+    it("keeps entries written by another process when saving", async () => {
+      vaultService.setPassword("test-password");
+      await vaultService.unlock();
+      await writeVault(tempVaultFile, "test-password", { vaultVersion: 1, entries: { cli: { added: "by-cli" } } });
+
+      await vaultService.setItem(TEST_CATEGORY, "k", "v");
+
+      const onDisk = await readVault(tempVaultFile, "test-password");
+      expect(onDisk.entries).toEqual({ cli: { added: "by-cli" }, [TEST_CATEGORY]: { k: "v" } });
+    });
+
+    it("refuses to save over a vault whose password was changed externally", async () => {
+      vaultService.setPassword("test-password");
+      await vaultService.unlock();
+      await writeVault(tempVaultFile, "new-password", { vaultVersion: 1, entries: { a: { b: "c" } } });
+
+      await expect(vaultService.setItem(TEST_CATEGORY, "k", "v")).rejects.toThrow(/change-password/);
+      await expect(vaultService.deleteItem("a", "b")).rejects.toThrow(/change-password/);
+      // The file is still encrypted with the new password and untouched.
+      expect((await readVault(tempVaultFile, "new-password")).entries).toEqual({ a: { b: "c" } });
     });
   });
 

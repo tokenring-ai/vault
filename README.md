@@ -89,7 +89,11 @@ console.log(Object.keys(data.entries)); // List of categories
 
 #### `lock(): void`
 
-Locks the vault, clearing all cached data and session password. The vault must be re-unlocked to access secrets.
+Locks the vault, clearing the decrypted entries and the session password from memory. The next access unlocks it again
+the same way the first unlock did: inside TokenRing the password is re-read from `TR_VAULT_PASSWORD` or the OS
+secrets manager (so the app keeps working without a prompt); a service with no password resolver asks the agent for
+the password, or throws when there is none. Locking limits how long secrets sit decrypted in memory; it does not
+require a human to re-enter a password when the password is stored in the keychain.
 
 - **Returns:** `void`
 
@@ -101,7 +105,10 @@ vaultService.lock();
 
 #### `save(modifications: VaultEntryUpdate[]): Promise<void>`
 
-Writes the updated vault data to the vault file, re-encrypting it with the current session password.
+Re-reads the vault file, applies the modifications and writes it back, re-encrypting it with the session password.
+Re-reading keeps entries another process (the `vault` CLI) wrote in the meantime. If the file no longer decrypts with
+the session password — for example after `vault change-password` while TokenRing was running — the save is refused
+instead of overwriting the vault with the old password; restart TokenRing with the new password.
 
 - **Parameters:**
 - `modifications` (`VaultEntryUpdate[]`): Array of updates to apply before saving.
@@ -215,6 +222,10 @@ await vaultService.setItem('env', 'API_KEY', 'secret_value');
 vaultService.getSecret('env', 'API_KEY'); // 'secret_value'
 vaultService.getSecret('env', 'MISSING'); // undefined
 ```
+
+#### `moveItem(from, to, options?)`, `createCategory(category)`, `unlockWithPassword(password?)`, `changePassword(current, next)`
+
+Back the RPC methods of the same names (see [RPC Endpoints](#rpc-endpoints)). `changePassword` updates the store registered with `setPasswordStore(store)`; the plugin registers the OS secrets-manager entry it resolves the password from. `peekEntries()` returns the key names without unlocking or resetting the relock timer, and `passwordChangeSupport()` reports whether a change is possible.
 
 #### `setPassword(password: string): void`
 
@@ -361,22 +372,39 @@ The vault package provides RPC endpoints for remote vault operations.
 
 ### Endpoint Path: `/rpc/vault`
 
-#### `listEntries()`
+#### `listEntries()` / `streamEntries()`
 
-Lists all entries in the vault as a flat key-value map.
+Lists the key names in each category (never the values). Reads never unlock the vault: a locked vault lists `{}`, so "Lock now" sticks until the user unlocks again.
 
-- **Type:** Query
+- **Type:** Query / Stream
 - **Input:** `{}`
-- **Result:** `Record<string, string>` - Map of `category.key` to values
+- **Result:** `Record<string, string[]>` - category to key names
 
-**Example:**
+#### `getItem({ category, key })`
 
-```typescript
-import { rpcClient } from '@tokenring-ai/rpc';
+Returns one value (`{ found, value? }`) for reveal / copy in the UI. Throws when the vault is locked; so do `setItems` and `deleteItems`.
 
-const entries = await rpcClient.call('/rpc/vault', 'listEntries', {});
-console.log(entries); // { 'api.OPENAI_KEY': 'sk-...', 'env.API_URL': 'https://...' }
-```
+#### `moveItem({ from, to, overwrite? })`
+
+Renames a key, moves it to another category, or both. Refuses to replace an existing destination unless `overwrite` is true. A category left empty by the move is removed.
+
+#### `createCategory({ category })`
+
+Adds an empty category (fails when it already exists).
+
+#### `getStatus()` / `streamStatus()`
+
+`{ unlocked, passwordSource, canChangePassword, reason? }`. `passwordSource` is `keychain` (OS secrets manager), `environment` (`TR_VAULT_PASSWORD`) or `session`.
+
+#### `lock()` / `unlock({ password? })`
+
+`lock` drops the decrypted entries and cached password from memory. `unlock` without a password re-reads it from the environment / OS secrets manager; with one, it verifies it against the vault file first.
+
+#### `changePassword({ currentPassword, newPassword })`
+
+Verifies the current password against the file, writes the re-encrypted vault beside the old one, updates the OS secrets-manager entry (`tokenring` / `vault-password`, only when it holds the current password), then swaps the file in and switches the session to the new password. Any failure leaves the old password working. Refused when the password comes from `TR_VAULT_PASSWORD`, which a running server cannot change — use `vault change-password` and update the variable instead.
+
+The Vault dashboard exposes all of these: rename/move per key, "New category", "Lock now" with a locked state that can unlock, "Change master password" (current + new twice + an acknowledgement), and copied secrets are wiped from the clipboard after 30 seconds if it still holds them.
 
 #### `setItems({ updates })`
 
@@ -598,6 +626,10 @@ vault remove api.OLD_KEY
 Change the vault encryption password.
 
 Prompts for current password and new password, then re-encrypts the vault.
+
+If TokenRing is running against this vault, it keeps using the old password until restarted, and refuses to save
+until then. Update `TR_VAULT_PASSWORD` or the `tokenring`/`vault-password` OS secrets entry to the new password before
+restarting, or the vault will fail to unlock.
 
 **Example:**
 
