@@ -8,9 +8,9 @@
     "@tokenring-ai/utility": "workspace:*",
     "@tokenring-ai/rpc": "workspace:*",
     "@types/fs-extra": "^11.0.4",
-    "commander": "^15.0.0",
-    "fs-extra": "^11.3.6",
-    "zod": "^4.4.3",
+    "commander": "^15.1.0",
+    "fs-extra": "^11.4.1",
+    "zod": "^4.6.7",
     "@tokenring-ai/secrets": "workspace:*"
   },
   "devDependencies": {
