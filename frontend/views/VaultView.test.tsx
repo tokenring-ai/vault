@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ViewDefinition } from "@tokenring-ai/one-frontend/dock/types.ts";
-import { createFakeDashboardApi, createFakePanelHandle, renderView } from "@tokenring-ai/one-frontend/test/dock.tsx";
+import { createLayoutRegistry } from "@tokenring-ai/one-frontend/layout/registry.ts";
+import { renderLayoutApp } from "@tokenring-ai/one-frontend/test/layout.tsx";
 import type React from "react";
 
 const setItems = mock(async (_args: { updates: { category: string; key: string; value: string }[] }) => ({
@@ -82,24 +82,19 @@ void mock.module("@tokenring-ai/one-frontend/components/ui/toast.tsx", () => ({
   },
 }));
 
-const { default: contribution } = await import("../app.tsx");
-const vaultView = contribution.views.find(view => view.id === "vault-vault") as ViewDefinition<any>;
-const getView = (id: string) => contribution.views.find(view => view.id === id);
+const { VAULT_APP } = await import("../layout.ts");
+const { default: vaultViews } = await import("../views.tsx");
 
-/** Mounts the vault view the way the dock does, on the Vault dashboard. */
+const registry = createLayoutRegistry({
+  apps: [VAULT_APP],
+  views: vaultViews.views,
+  kinds: [{ id: "page", label: "Pages", plural: "pages" }],
+});
+
+/** Mounts the vault app at its URL. */
 async function renderVault() {
-  const result = renderView(
-    vaultView,
-    {},
-    {
-      api: createFakeDashboardApi({ dashboardId: "vault", getView }),
-      panel: createFakePanelHandle({ viewId: "vault-vault", dashboardId: "vault" }),
-      path: "/vault",
-      routes: ["/vault"],
-    },
-  );
-  // The view ships as a lazy chunk: wait for it to load before the test asserts.
-  await screen.findByText("Vault");
+  const result = renderLayoutApp({ registry, url: "/vault" });
+  await screen.findAllByText("Vault");
   return result;
 }
 
@@ -119,7 +114,7 @@ describe("VaultView", () => {
 
   it("lists secrets from the vault stream", async () => {
     await renderVault();
-    expect(screen.getByText("Vault")).toBeInTheDocument();
+    expect(screen.getAllByText("Vault").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("API_KEY")).toBeInTheDocument();
     expect(screen.getByText("DATABASE_URL")).toBeInTheDocument();
     expect(screen.getByText("github")).toBeInTheDocument();

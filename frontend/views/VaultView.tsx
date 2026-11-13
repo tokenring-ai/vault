@@ -37,7 +37,6 @@ import { Link } from "react-router-dom";
 import ChangePasswordDialog from "../components/ChangePasswordDialog.tsx";
 import { CLIPBOARD_CLEAR_MS, scheduleClipboardClear } from "../lib/clipboardAutoClear.ts";
 import { assertMutationOk, useVaultStatus } from "../lib/vaultStatus.ts";
-import { VAULT_DASHBOARD_ID } from "../manifest.ts";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
@@ -816,7 +815,7 @@ function LockedVault({ onUnlocked }: { onUnlocked: () => void }) {
  * The Vault dashboard's single view: encrypted keys grouped by category, with
  * search in the header and add/reveal/copy/edit/rename/move/delete/bulk-import
  * per key, plus lock and master-password controls.
- * Rendered inside a dock panel; it takes no URL params.
+ * Rendered as a layout page; it takes no URL params.
  */
 export default function VaultView() {
   const vault = useVaultKeys();
@@ -887,7 +886,8 @@ export default function VaultView() {
         <ViewHeader
           title="Vault"
           subtitle={locked ? "Locked" : "Manage encrypted credentials and secrets"}
-          dashboardId={VAULT_DASHBOARD_ID}
+          icon={Lock}
+          iconGradient="from-yellow-500 to-amber-600"
           middle={
             locked ? undefined : (
               <SearchInput value={search} onChange={setSearch} placeholder="Search keys..." aria-label="Search vault keys" className="w-full max-w-xs" />
