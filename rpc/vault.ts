@@ -17,6 +17,7 @@ function projectStatus(app: TokenRingApp): VaultStatus {
   const support = vault.passwordChangeSupport();
   return {
     unlocked: vault.unlocked,
+    vaultExists: vault.vaultFileExists(),
     passwordSource: support.source,
     canChangePassword: support.supported,
     ...(support.reason !== undefined && { reason: support.reason }),
@@ -68,9 +69,7 @@ export default createRPCEndpoint(VaultRpcSchema, {
   async deleteItems(args, app: TokenRingApp) {
     const vault = requireUnlocked(app);
     try {
-      for (const { category, key } of args.updates) {
-        await vault.deleteItem(category, key);
-      }
+      await vault.deleteItems(args.updates);
       return {
         success: true,
         message: `Deleted ${args.updates.length} item(s)`,
@@ -113,10 +112,19 @@ export default createRPCEndpoint(VaultRpcSchema, {
 
   async unlock(args, app: TokenRingApp) {
     try {
-      await app.requireService(VaultService).unlockWithPassword(args.password);
+      await app.requireService(VaultService).unlockExisting(args.password);
       return { success: true, message: "Vault unlocked" };
     } catch (error: unknown) {
       return failure(error);
+    }
+  },
+
+  async createVault(args, app: TokenRingApp) {
+    try {
+      const created = await app.requireService(VaultService).createVault(args.password);
+      return { success: true, message: created.message, passwordStored: created.passwordStored };
+    } catch (error: unknown) {
+      return { ...failure(error), passwordStored: false };
     }
   },
 

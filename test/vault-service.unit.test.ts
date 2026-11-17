@@ -296,6 +296,61 @@ describe("VaultService", () => {
     });
   });
 
+  describe("startup with a wrong password", () => {
+    it("start() leaves the vault locked and reports the error instead of throwing", async () => {
+      await writeVault(tempVaultFile, "right-password", { vaultVersion: 1, entries: { a: { b: "c" } } });
+      const previous = process.env.TR_VAULT_PASSWORD;
+      process.env.TR_VAULT_PASSWORD = "wrong-password";
+      try {
+        const reported: string[] = [];
+        vaultService.setErrorReporter(message => reported.push(message));
+        await vaultService.start();
+        expect(vaultService.unlocked).toBe(false);
+        expect(reported).toHaveLength(1);
+        expect(reported[0]).toContain("TR_VAULT_PASSWORD");
+
+        // The right password still unlocks it afterwards.
+        await vaultService.unlockWithPassword("right-password");
+        expect(vaultService.getSecret("a", "b")).toBe("c");
+      } finally {
+        if (previous === undefined) delete process.env.TR_VAULT_PASSWORD;
+        else process.env.TR_VAULT_PASSWORD = previous;
+      }
+    });
+
+    it("unlockAtStartup() resolves false and reports a password that does not open the vault", async () => {
+      await writeVault(tempVaultFile, "right-password", { vaultVersion: 1, entries: {} });
+      const reported: string[] = [];
+      vaultService.setErrorReporter(message => reported.push(message));
+      vaultService.setPasswordResolver(() => Promise.resolve("wrong-password"));
+      expect(await vaultService.unlockAtStartup()).toBe(false);
+      expect(vaultService.unlocked).toBe(false);
+      expect(reported).toHaveLength(1);
+      // start() after a failed startup unlock does not report the same failure again.
+      await vaultService.start();
+      expect(reported).toHaveLength(1);
+    });
+
+    it("unlockAtStartup() leaves the vault locked, without throwing, when no password is available", async () => {
+      vaultService.setPasswordResolver(() => Promise.reject(new Error("no password")));
+      expect(await vaultService.unlockAtStartup()).toBe(false);
+    });
+  });
+
+  describe("stop", () => {
+    it("clears the relock timer", async () => {
+      vaultService.lock();
+      vaultService = new VaultService({ vaultFile: tempVaultFile, relockTime: 40 });
+      spyOn(agent, "askForText").mockResolvedValue("test-password");
+      await vaultService.unlock(agent);
+      vaultService.stop();
+
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      expect(vaultService.unlocked).toBe(true);
+    });
+  });
+
   describe("relockTime", () => {
     it("should lock the vault after the configured idle time", async () => {
       vaultService.lock();

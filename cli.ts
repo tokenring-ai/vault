@@ -2,8 +2,34 @@
 import { spawn } from "node:child_process";
 import readline from "node:readline";
 import { Command } from "commander";
+import fs from "fs-extra";
+import { keychainPasswordStore } from "./keychain.ts";
 import packageJSON from "./package.json" with { type: "json" };
-import { initVault, readVault, writeVault } from "./vault.ts";
+import VaultService from "./VaultService.ts";
+import { assertVaultName, initVault, ownEntry, readVault, writeVault } from "./vault.ts";
+
+/** Splits `category.key` (the key may itself contain dots); both parts must be usable names. */
+export function parseEntryPath(path: string): { category: string; key: string } {
+  const dot = path.indexOf(".");
+  const category = dot === -1 ? path : path.slice(0, dot);
+  const key = dot === -1 ? "" : path.slice(dot + 1);
+  if (!key) throw new Error(`"${path}" is not a vault entry; use category.key`);
+  assertVaultName("category", category);
+  assertVaultName("key", key);
+  return { category, key };
+}
+
+/** Runs a command action, printing a failure instead of a stack trace. */
+function cli<A extends unknown[]>(action: (...args: A) => Promise<void>): (...args: A) => Promise<void> {
+  return async (...args: A) => {
+    try {
+      await action(...args);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  };
+}
 
 let rlInterface: readline.Interface | undefined;
 
@@ -61,38 +87,49 @@ program.name("vault").version(packageJSON.version).description("Encrypted vault 
 program
   .command("init")
   .description("Initialize a new vault")
-  .action(async () => {
-    const opts = program.opts();
-    const password = await askPassword("Set a password for the new vault:");
-    await initVault(opts.file, password);
-    console.log(`Vault initialized: ${opts.file}`);
-  });
+  .option("--force", "Replace an existing vault file, discarding every secret in it")
+  .action(
+    cli(async (options: { force?: boolean }) => {
+      const opts = program.opts();
+      if ((await fs.pathExists(opts.file)) && !options.force) {
+        throw new Error(`${opts.file} already exists. Re-running init would replace it with an empty vault; pass --force if that is really what you want.`);
+      }
+      const password = await askPassword("Set a password for the new vault:");
+      if (!password) throw new Error("The password must not be empty");
+      await initVault(opts.file, password);
+      console.log(`Vault initialized: ${opts.file}`);
+    }),
+  );
 
 program
   .command("get <key>")
   .description("Get a secret value (format: category.key)")
-  .action(async (key: string) => {
-    const opts = program.opts();
-    const password = await askPassword("Enter vault password:");
-    const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split(".");
-    const k = rest.join(".");
-    console.log(data.entries[category!]?.[k] ?? "");
-  });
+  .action(
+    cli(async (path: string) => {
+      const opts = program.opts();
+      const { category, key } = parseEntryPath(path);
+      const password = await askPassword("Enter vault password:");
+      const data = await readVault(opts.file, password);
+      console.log(ownEntry(data, category, key) ?? "");
+    }),
+  );
 
 program
   .command("set <key> <value>")
   .description("Set a secret value (format: category.key)")
-  .action(async (key: string, value: string) => {
-    const opts = program.opts();
-    const password = await askPassword("Enter vault password:");
-    const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split(".") as [string];
-    const k = rest.join(".");
-    (data.entries[category] ??= {})[k] = value;
-    await writeVault(opts.file, password, data);
-    console.log(`Set ${key}`);
-  });
+  .action(
+    cli(async (path: string, value: string) => {
+      const opts = program.opts();
+      const { category, key } = parseEntryPath(path);
+      if (!value) throw new Error("The value must not be empty");
+      const password = await askPassword("Enter vault password:");
+      const data = await readVault(opts.file, password);
+      if (!Object.hasOwn(data.entries, category)) data.entries[category] = {};
+      data.entries[category]![key] = value;
+      await writeVault(opts.file, password, data);
+      console.log(`Set ${path}`);
+    }),
+  );
 
 program
   .command("list")
@@ -111,33 +148,43 @@ program
 program
   .command("remove <key>")
   .description("Remove a secret (format: category.key)")
-  .action(async (key: string) => {
-    const opts = program.opts();
-    const password = await askPassword("Enter vault password:");
-    const data = await readVault(opts.file, password);
-    const [category, ...rest] = key.split(".") as [string];
-    const k = rest.join(".");
-    delete data.entries[category]?.[k];
-    await writeVault(opts.file, password, data);
-    console.log(`Removed ${key}`);
-  });
+  .action(
+    cli(async (path: string) => {
+      const opts = program.opts();
+      const { category, key } = parseEntryPath(path);
+      const password = await askPassword("Enter vault password:");
+      const data = await readVault(opts.file, password);
+      if (ownEntry(data, category, key) === undefined) throw new Error(`${path} is not in the vault`);
+      const items = data.entries[category]!;
+      delete items[key];
+      if (Object.keys(items).length === 0) delete data.entries[category];
+      await writeVault(opts.file, password, data);
+      console.log(`Removed ${path}`);
+    }),
+  );
 
 program
   .command("change-password")
   .description("Change vault password")
-  .action(async () => {
-    try {
+  .action(
+    cli(async () => {
       const opts = program.opts();
       const oldPassword = await askPassword("Enter current vault password:");
-      const data = await readVault(opts.file, oldPassword);
+      await readVault(opts.file, oldPassword);
       const newPassword = await askPassword("Enter new vault password:");
-      await writeVault(opts.file, newPassword, data);
+      if (newPassword.length < 8) throw new Error("The new password must be at least 8 characters");
+      if ((await askPassword("Repeat the new vault password:")) !== newPassword) throw new Error("The passwords did not match; nothing was changed");
+
+      // The same path as the app's own password change: the file is swapped in only after the OS
+      // keychain entry TokenRing unlocks with (if it holds the old password) has been updated.
+      const fromEnvironment = !!process.env.TR_VAULT_PASSWORD;
+      const service = new VaultService({ vaultFile: String(opts.file) });
+      if (!fromEnvironment) service.setPasswordStore(keychainPasswordStore);
+      await service.changePassword(oldPassword, newPassword);
       console.log("Password changed successfully");
-    } catch (e: any) {
-      console.error(`Error: ${e.message}`);
-      process.exit(1);
-    }
-  });
+      if (fromEnvironment) console.log("TR_VAULT_PASSWORD is set: update it to the new password before starting TokenRing again.");
+    }),
+  );
 
 program
   .command("run")

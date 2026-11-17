@@ -18,11 +18,16 @@ describe("Vault CLI Integration", () => {
     await fs.remove(tempDir);
   });
 
-  function runCommand(command: string, args: string[], password?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  function runCommand(
+    command: string,
+    args: string[],
+    password?: string,
+    extraEnv: Record<string, string> = {},
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise(resolve => {
       const child = spawn("bun", [path.join(__dirname, "../cli.ts"), command, ...args, "--file", vaultFile], {
         cwd: __dirname,
-        env: { ...process.env, BUNDLE_ALLOW_RUNTIME: "1" },
+        env: { ...process.env, BUNDLE_ALLOW_RUNTIME: "1", ...extraEnv },
       });
 
       let stdout = "";
@@ -37,7 +42,12 @@ describe("Vault CLI Integration", () => {
       });
 
       child.on("close", exitCode => {
-        stdout = stdout.trim().replace(/Enter vault password:|Set a password for the new vault:|Enter current vault password:|Enter new vault password:/g, "");
+        stdout = stdout
+          .trim()
+          .replace(
+            /Enter vault password:|Set a password for the new vault:|Enter current vault password:|Enter new vault password:|Repeat the new vault password:/g,
+            "",
+          );
         resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
       });
 
@@ -153,7 +163,8 @@ describe("Vault CLI Integration", () => {
       await runCommand("init", [], "test-password");
       await runCommand("set", ["test.key", "test-value"], "test-password");
 
-      const result = await runCommand("change-password", [], "test-password\nnew-password\n");
+      // With TR_VAULT_PASSWORD set the CLI leaves the OS keychain alone (and says to update the variable).
+      const result = await runCommand("change-password", [], "test-password\nnew-password\nnew-password", { TR_VAULT_PASSWORD: "set-by-test" });
 
       if (result.exitCode !== 0) {
         console.log("STDOUT:", result.stdout);
@@ -161,9 +172,40 @@ describe("Vault CLI Integration", () => {
       }
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("Password changed successfully");
+      expect(result.stdout).toContain("update it to the new password");
 
       const getResult = await runCommand("get", ["test.key"], "new-password");
       expect(getResult.stdout.trim()).toBe("test-value");
+    });
+  });
+
+  describe("guards", () => {
+    it("refuses to init over an existing vault without --force", async () => {
+      await runCommand("init", [], "test-password");
+      await runCommand("set", ["test.key", "keep-me"], "test-password");
+
+      const result = await runCommand("init", [], "other-password");
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("already exists");
+      expect((await runCommand("get", ["test.key"], "test-password")).stdout.trim()).toBe("keep-me");
+    });
+
+    it("rejects entry names that would corrupt the vault or reach Object.prototype", async () => {
+      await runCommand("init", [], "test-password");
+      for (const name of ["nodot", "test.", "constructor.x", "__proto__.x"]) {
+        const result = await runCommand("set", [name, "v"], "test-password");
+        expect(result.exitCode).not.toBe(0);
+      }
+      // The vault still opens.
+      expect((await runCommand("list", [], "test-password")).exitCode).toBe(0);
+    });
+
+    it("rejects a short or mistyped new password", async () => {
+      await runCommand("init", [], "test-password");
+      const env = { TR_VAULT_PASSWORD: "set-by-test" };
+      expect((await runCommand("change-password", [], "test-password\nshort\nshort", env)).exitCode).not.toBe(0);
+      expect((await runCommand("change-password", [], "test-password\nnew-password\ntypo-password", env)).exitCode).not.toBe(0);
+      expect((await runCommand("list", [], "test-password")).exitCode).toBe(0);
     });
   });
 

@@ -36,3 +36,6 @@ export const VaultEntryUpdateSchema = z.object({
 });
 
 export type VaultEntryUpdate = z.input<typeof VaultEntryUpdateSchema>;
+
+/** The shortest password the app accepts when creating a vault. */
+export const MIN_VAULT_PASSWORD_LENGTH = 10;

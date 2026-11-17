@@ -322,9 +322,19 @@ Reads an existing vault file or initializes a new one if it doesn't exist.
 
 ## Chat Commands
 
+### `/vault setup`
+
+Create the vault when none exists. Asks for a password twice in masked questions (so it stays out of the chat history), at least 10 characters, then creates and unlocks the vault and tries to save the password in the OS secrets manager so the next start unlocks by itself. If that is not possible it says so: the password is then needed at every start (set `TR_VAULT_PASSWORD` on servers). Refuses when a vault file already exists. The password cannot be recovered.
+
+**Example:**
+
+```bash
+/vault setup
+```
+
 ### `/vault unlock`
 
-Unlock the vault with password prompt.
+Unlock the vault with password prompt. When no vault exists yet it says "No vault is set up yet: run /vault setup".
 
 **Example:**
 
@@ -394,11 +404,15 @@ Adds an empty category (fails when it already exists).
 
 #### `getStatus()` / `streamStatus()`
 
-`{ unlocked, passwordSource, canChangePassword, reason? }`. `passwordSource` is `keychain` (OS secrets manager), `environment` (`TR_VAULT_PASSWORD`) or `session`.
+`{ unlocked, vaultExists, passwordSource, canChangePassword, reason? }`. `vaultExists` is whether the vault file exists: `unlocked: false` with `vaultExists: false` means "not set up yet" (the UI then asks for a password to create it), while `vaultExists: true` is a locked vault. `passwordSource` is `keychain` (OS secrets manager), `environment` (`TR_VAULT_PASSWORD`) or `session`.
 
 #### `lock()` / `unlock({ password? })`
 
 `lock` drops the decrypted entries and cached password from memory. `unlock` without a password re-reads it from the environment / OS secrets manager; with one, it verifies it against the vault file first.
+
+#### `createVault({ password })`
+
+Creates the vault with a password the user chose (at least 10 characters), unlocks it, and then makes a best-effort attempt to store the password in the OS secrets manager (`tokenring` / `vault-password`, the place startup reads it from). Returns `{ success, message, passwordStored }`; when `passwordStored` is false the message says the password will be needed at every start (and mentions `TR_VAULT_PASSWORD` for servers). Never overwrites: it fails when a vault file already exists. The password is never logged or included in a result. `unlock({ password })` on a missing vault answers "No vault is set up yet: run /vault setup" instead of creating it.
 
 #### `changePassword({ currentPassword, newPassword })`
 
@@ -709,6 +723,8 @@ The vault plugin supports multiple password sources:
 1. **Environment Variable:** Set `TR_VAULT_PASSWORD` environment variable
 2. **Secrets Manager:** Reads from Bun secrets with service `tokenring` and name `vault-password`
 3. **Interactive Prompt:** Prompts at startup if no password is configured
+
+The app boots even when none of these works: with no vault file the vault is "not set up" (create it from the UI or with `/vault setup`), and with an existing vault it stays locked until unlocked.
 
 ```bash
 # Using environment variable

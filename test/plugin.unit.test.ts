@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:te
 import type TokenRingApp from "@tokenring-ai/app";
 import createTestingApp from "@tokenring-ai/app/test/createTestingApp.test";
 import fs from "fs-extra";
+import { VaultService } from "../index.ts";
 import plugin from "../plugin.ts";
 import { createTempFile } from "./test-utils.ts";
 
@@ -75,6 +76,20 @@ describe("Vault Plugin", () => {
         vault: { vaultFile },
       });
       expect(mockAddServices).toHaveBeenCalled();
+    });
+
+    it("boots with the vault locked when TR_VAULT_PASSWORD is wrong", async () => {
+      const vaultFile = `${tempDir}/wrong.vault`;
+      process.env.TR_VAULT_PASSWORD = "right-password";
+      await plugin.earlyInstall(createTestingApp(), { vault: { vaultFile } });
+
+      process.env.TR_VAULT_PASSWORD = "wrong-password";
+      const errorSpy = spyOn(mockApp, "serviceError").mockImplementation(() => {});
+      await plugin.earlyInstall(mockApp, { vault: { vaultFile } });
+
+      expect(mockApp.requireService(VaultService).unlocked).toBe(false);
+      expect(errorSpy).toHaveBeenCalled();
+      expect(String(errorSpy.mock.calls[0]![1])).toContain("Could not unlock the vault");
     });
   });
 });

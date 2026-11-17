@@ -6,6 +6,7 @@ import SearchInput from "@tokenring-ai/one-frontend/components/ui/SearchInput.ts
 import { toastManager } from "@tokenring-ai/one-frontend/components/ui/toast.tsx";
 import ViewHeader from "@tokenring-ai/one-frontend/components/ui/ViewHeader.tsx";
 import ViewShell from "@tokenring-ai/one-frontend/components/ui/ViewShell.tsx";
+import VaultSetupForm from "@tokenring-ai/one-frontend/components/VaultSetupForm.tsx";
 import { useConfirmDialog } from "@tokenring-ai/one-frontend/hooks/useConfirmDialog.tsx";
 import { useCopyToClipboard } from "@tokenring-ai/one-frontend/hooks/useCopyToClipboard.ts";
 import { useEntityDelete } from "@tokenring-ai/one-frontend/hooks/useEntityDelete.ts";
@@ -749,7 +750,7 @@ function NewCategoryForm({ existing, onCreated }: { existing: readonly string[];
 
 // ─── Locked state ─────────────────────────────────────────────────────────────
 
-function LockedVault({ onUnlocked }: { onUnlocked: () => void }) {
+function LockedVault({ onUnlocked, vaultExists }: { onUnlocked: () => void; vaultExists: boolean }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -768,6 +769,20 @@ function LockedVault({ onUnlocked }: { onUnlocked: () => void }) {
       setBusy(false);
     }
   };
+
+  if (!vaultExists) {
+    return (
+      <div className="max-w-md mx-auto py-10 px-4 space-y-4" data-testid="vault-setup">
+        <EmptyState
+          icon={Lock}
+          title="Set up your vault"
+          hint="Your keys and tokens are kept in an encrypted file on this computer (the vault). It does not exist yet: choose a password to create it."
+          variant="page"
+        />
+        <VaultSetupForm onCreated={() => onUnlocked()} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto py-10 px-4 space-y-4" data-testid="vault-locked">
@@ -899,7 +914,7 @@ export default function VaultView() {
     >
       {locked ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <LockedVault onUnlocked={refresh} />
+          <LockedVault onUnlocked={refresh} vaultExists={status.data?.vaultExists !== false} />
         </div>
       ) : (
         <>

@@ -9,6 +9,8 @@ const MutationResultSchema = z.object({
 
 export const VaultStatusSchema = z.object({
   unlocked: z.boolean(),
+  /** Whether a vault file exists. False and locked means "not set up yet": the app asks for a password to create one. */
+  vaultExists: z.boolean(),
   /** Where the password is kept between runs: "keychain", "environment", or "session". */
   passwordSource: z.string(),
   /** Whether changePassword can run from here; `reason` says why not. */
@@ -104,6 +106,22 @@ export default {
         password: z.string().min(1).exactOptional(),
       }),
       result: MutationResultSchema,
+    },
+    /**
+     * Create the vault with a password the user chose, unlock it, and try to keep the password in the OS secrets
+     * manager. Refuses when a vault file already exists or the password is too short. The password is never echoed.
+     */
+    createVault: {
+      type: "mutation",
+      input: z.object({
+        password: z.string().min(1),
+      }),
+      result: z.object({
+        success: z.boolean(),
+        message: z.string(),
+        /** Whether the password was saved in the OS secrets manager (otherwise it is needed at every start). */
+        passwordStored: z.boolean(),
+      }),
     },
     /** Re-encrypt the vault under a new master password (and update the OS secrets manager entry). */
     changePassword: {

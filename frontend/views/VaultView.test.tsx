@@ -27,8 +27,9 @@ const lock = mock(async (_args: Record<string, never>) => ({ success: true, mess
 const unlock = mock(async (_args: { password?: string }) => ({ success: true, message: "Vault unlocked" }));
 const changePassword = mock(async (_args: { currentPassword: string; newPassword: string }) => ({ success: true, message: "ok" }));
 const mutateStatus = mock(async () => undefined);
+const createVault = mock(async (_args: { password: string }) => ({ success: true, message: "Vault created and unlocked.", passwordStored: true }));
 
-let vaultStatus: { unlocked: boolean; passwordSource: string; canChangePassword: boolean; reason?: string } = {
+let vaultStatus: { unlocked: boolean; vaultExists?: boolean; passwordSource: string; canChangePassword: boolean; reason?: string } = {
   unlocked: true,
   passwordSource: "keychain",
   canChangePassword: true,
@@ -56,6 +57,7 @@ void mock.module("@tokenring-ai/one-frontend/rpc.ts", () => ({
     lock,
     unlock,
     changePassword,
+    createVault,
   },
 }));
 
@@ -385,6 +387,23 @@ describe("VaultView", () => {
     await user.type(screen.getByLabelText("Vault password"), "typed-password");
     await user.click(screen.getByRole("button", { name: "Unlock" }));
     await waitFor(() => expect(unlock).toHaveBeenCalledWith({ password: "typed-password" }));
+  });
+
+  it("offers to create the vault, not to unlock it, when no vault file exists", async () => {
+    const user = userEvent.setup();
+    vaultStatus = { unlocked: false, vaultExists: false, passwordSource: "keychain", canChangePassword: true };
+    vaultData = {};
+    await renderVault();
+
+    expect(screen.getByTestId("vault-setup")).toBeInTheDocument();
+    expect(screen.queryByTestId("vault-locked")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unlock with saved password" })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("New vault password"), "a long enough password");
+    await user.type(screen.getByLabelText("Confirm vault password"), "a long enough password");
+    await user.click(screen.getByRole("button", { name: "Create vault" }));
+    await waitFor(() => expect(createVault).toHaveBeenCalledWith({ password: "a long enough password" }));
+    await waitFor(() => expect(mutateStatus).toHaveBeenCalled());
   });
 
   it("changes the master password only after matching entries and an acknowledgement", async () => {

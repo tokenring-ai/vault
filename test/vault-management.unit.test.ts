@@ -47,6 +47,32 @@ describe("vault management", () => {
     await fs.remove(tempDir);
   });
 
+  describe("deleteItems", () => {
+    it("deletes nothing when any requested key is missing", async () => {
+      const result = await rpc.deleteItems({
+        updates: [
+          { category: "env", key: "API_KEY" },
+          { category: "env", key: "MISSING" },
+          { category: "token", key: "github" },
+        ],
+      });
+      expect(result).toMatchObject({ success: false });
+      expect(result.message).toContain("MISSING");
+      expect((await readVault(vaultFile, "old-password")).entries).toEqual({ env: { API_KEY: "a", OTHER: "b" }, token: { github: "t" } });
+    });
+
+    it("deletes every requested key in one write", async () => {
+      const result = await rpc.deleteItems({
+        updates: [
+          { category: "env", key: "API_KEY" },
+          { category: "token", key: "github" },
+        ],
+      });
+      expect(result).toMatchObject({ success: true });
+      expect((await readVault(vaultFile, "old-password")).entries).toEqual({ env: { OTHER: "b" } });
+    });
+  });
+
   describe("moveItem", () => {
     it("renames a key within its category", async () => {
       expect(await rpc.moveItem({ from: { category: "env", key: "API_KEY" }, to: { category: "env", key: "OPENAI_KEY" } })).toMatchObject({ success: true });
